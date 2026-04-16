@@ -92,123 +92,141 @@
         </div>
     </main>
 
-    <script>
-        // --- LOGIKA APLIKASI ---
-        let cart = [];
+<script>
+    // --- LOGIKA APLIKASI DELTA LUNOX ---
+    let cart = [];
 
-        // Menggunakan 'supabaseClient' sesuai dengan file supabase.js Anda
-        async function saveProduct() {
-            const name = document.getElementById('p_name').value;
-            const sku = document.getElementById('p_sku').value;
-            const qr = document.getElementById('p_qr').value;
-            const price = parseInt(document.getElementById('p_price').value) || 0;
-            const stock = parseInt(document.getElementById('p_stock').value) || 0;
+    // 1. FUNGSI SIMPAN PRODUK (Input Inventory)
+    async function saveProduct() {
+        // Mengambil data dari ID input HTML
+        const nameValue = document.getElementById('p_name').value;
+        const skuValue = document.getElementById('p_sku').value;
+        const qrValue = document.getElementById('p_qr').value;
+        const priceValue = parseFloat(document.getElementById('p_price').value) || 0;
+        const stockValue = parseInt(document.getElementById('p_stock').value) || 0;
 
-            if(!name || !qr) return alert("Nama dan QR wajib diisi!");
+        if(!nameValue || !qrValue || !skuValue) return alert("Nama, SKU, dan QR wajib diisi!");
 
-            const { error } = await supabaseClient
-                .from('produk') // Sesuaikan dengan nama tabel di DB Anda (produk / products)
-                .insert([{
-                    nama_barang: name,
-                    sku: sku,
-                    qr_code: qr,
-                    harga_jual: price,
-                    stok_sekarang: stock,
-                    tampil_online: true
-                }]);
+        // SESUAIKAN DENGAN KOLOM SQL ANDA: name, sku, qr_code, price, stock
+        const { error } = await supabaseClient
+            .from('products') 
+            .insert([{
+                name: nameValue,
+                sku: skuValue,
+                qr_code: qrValue,
+                price: priceValue,
+                stock: stockValue
+            }]);
 
-            if (error) alert("Error: " + error.message);
-            else {
-                alert("Inventory Updated! ✨");
-                location.reload();
-            }
+        if (error) {
+            alert("Gagal Simpan ke Database: " + error.message);
+        } else {
+            alert("Inventory Delta Lunox Updated! ✨");
+            location.reload();
         }
+    }
 
-        function onScanSuccess(decodedText) {
-            findProduct(decodedText);
-        }
+    // 2. FUNGSI SCAN QR (Mencari Produk)
+    async function findProduct(qrCode) {
+        const { data, error } = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('qr_code', qrCode)
+            .single();
 
-        async function findProduct(qrCode) {
-            const { data, error } = await supabaseClient
-                .from('produk')
-                .select('*')
-                .eq('qr_code', qrCode)
-                .single();
-
-            if (data) {
-                cart.push(data);
-                updateCartUI();
-            }
-        }
-
-        function updateCartUI() {
-            const list = document.getElementById('cart-list');
-            list.innerHTML = "";
-            let total = 0;
-
-            if (cart.length === 0) {
-                list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold uppercase text-[10px]">Keranjang Kosong</div>`;
-            }
-
-            cart.forEach((item, index) => {
-                total += item.harga_jual;
-                list.innerHTML += `
-                    <div class="flex justify-between items-center p-5 bg-slate-50 rounded-[25px] border border-white shadow-sm">
-                        <div class="flex flex-col text-left">
-                            <span class="text-[11px] font-black text-slate-700 uppercase leading-tight">${item.nama_barang}</span>
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">${item.sku}</span>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="font-black text-slate-800 text-sm">Rp ${item.harga_jual.toLocaleString()}</span>
-                            <button onclick="removeItem(${index})" class="w-8 h-8 rounded-full bg-white text-red-400 flex items-center justify-center shadow-sm">
-                                <i class="fas fa-times text-[10px]"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            document.getElementById('total-price').innerText = "Rp " + total.toLocaleString();
-        }
-
-        function removeItem(index) {
-            cart.splice(index, 1);
+        if (data) {
+            cart.push(data);
             updateCartUI();
+        } else {
+            console.log("Produk tidak terdaftar di database.");
+        }
+    }
+
+    // 3. FUNGSI UPDATE TAMPILAN KERANJANG
+    function updateCartUI() {
+        const list = document.getElementById('cart-list');
+        list.innerHTML = "";
+        let total = 0;
+
+        if (cart.length === 0) {
+            list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold uppercase text-[10px]">Keranjang Kosong</div>`;
         }
 
-        function clearCart() {
+        cart.forEach((item, index) => {
+            total += parseFloat(item.price);
+            list.innerHTML += `
+                <div class="flex justify-between items-center p-5 bg-slate-50 rounded-[25px] border border-white shadow-sm">
+                    <div class="flex flex-col text-left">
+                        <span class="text-[11px] font-black text-slate-700 uppercase leading-tight">${item.name}</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">SKU: ${item.sku}</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="font-black text-slate-800 text-sm">Rp ${parseFloat(item.price).toLocaleString()}</span>
+                        <button onclick="removeItem(${index})" class="w-8 h-8 rounded-full bg-white text-red-400 flex items-center justify-center shadow-sm">
+                            <i class="fas fa-times text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        document.getElementById('total-price').innerText = "Rp " + total.toLocaleString();
+    }
+
+    // 4. FUNGSI CHECKOUT (Simpan Transaksi)
+    async function checkout() {
+        if (cart.length === 0) return alert("Pilih barang dulu!");
+        
+        const totalAmount = cart.reduce((acc, curr) => acc + parseFloat(curr.price), 0);
+
+        // A. Simpan ke tabel 'transactions'
+        const { data: trans, error: tErr } = await supabaseClient
+            .from('transactions')
+            .insert([{ 
+                total_amount: totalAmount,
+                payment_method: 'Tunai' 
+            }])
+            .select().single();
+
+        if (tErr) return alert("Gagal Transaksi: " + tErr.message);
+
+        // B. Simpan ke tabel 'transaction_items'
+        // Kolom di SQL: transaction_id, product_id, quantity, subtotal
+        const items = cart.map(i => ({ 
+            transaction_id: trans.id, 
+            product_id: i.id, 
+            quantity: 1, 
+            subtotal: i.price 
+        }));
+
+        const { error: iErr } = await supabaseClient
+            .from('transaction_items')
+            .insert(items);
+
+        if (!iErr) {
+            alert("Delta Lunox: Transaksi Berhasil! Stok otomatis terpotong melalui Trigger SQL. 🌸");
             cart = [];
             updateCartUI();
+        } else {
+            alert("Item Gagal Disimpan: " + iErr.message);
         }
+    }
 
-        async function checkout() {
-            if (cart.length === 0) return alert("Scan produk dulu!");
-            const total = cart.reduce((acc, curr) => acc + curr.harga_jual, 0);
+    function removeItem(index) {
+        cart.splice(index, 1);
+        updateCartUI();
+    }
 
-            const { data: trans, error: tErr } = await supabaseClient
-                .from('transactions')
-                .insert([{ total_amount: total }])
-                .select().single();
+    function clearCart() {
+        cart = [];
+        updateCartUI();
+    }
 
-            if (tErr) return alert(tErr.message);
+    function onScanSuccess(decodedText) {
+        findProduct(decodedText);
+    }
 
-            const items = cart.map(i => ({ 
-                transaction_id: trans.id, 
-                product_id: i.id, 
-                quantity: 1, 
-                subtotal: i.harga_jual 
-            }));
-
-            const { error: iErr } = await supabaseClient.from('transaction_items').insert(items);
-
-            if (!iErr) {
-                alert("Transaksi Berhasil! 🌸");
-                cart = [];
-                updateCartUI();
-            }
-        }
-
-        const scanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: 250 });
-        scanner.render(onScanSuccess);
-    </script>
+    const scanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: 250 });
+    scanner.render(onScanSuccess);
+</script>
 </body>
 </html>
