@@ -6,7 +6,7 @@
     <title>Delta Lunox | Finex POS System 💎</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="supabase.js"></script> <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
@@ -49,7 +49,7 @@
             <div class="card-premium p-8 shadow-lg shadow-slate-100">
                 <h3 class="font-black text-slate-800 uppercase text-sm tracking-widest mb-6 border-b pb-2">Add New Inventory</h3>
                 <div class="space-y-4">
-                    <input type="text" id="p_name" placeholder="Product Name" class="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="text" id="p_name" placeholder="Product Name" class="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
                     <div class="grid grid-cols-2 gap-4">
                         <input type="text" id="p_sku" placeholder="SKU Code" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
                         <input type="text" id="p_qr" placeholder="QR String" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
@@ -76,10 +76,7 @@
                 </div>
 
                 <div id="cart-list" class="flex-grow space-y-4 overflow-y-auto no-scrollbar max-h-[400px]">
-                    <div class="text-center py-20">
-                        <i class="fas fa-shopping-basket text-slate-200 text-4xl mb-4"></i>
-                        <p class="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Keranjang Kosong</p>
-                    </div>
+                    <div class="text-center py-20 text-slate-300 font-bold uppercase text-[10px]">Keranjang Kosong</div>
                 </div>
 
                 <div class="mt-8 pt-8 border-t border-dashed border-slate-200">
@@ -96,17 +93,10 @@
     </main>
 
     <script>
-        // --- KONFIGURASI SUPABASE ---
-        // Ganti dengan kredensial asli Anda
-        const SB_URL = "URL_SUPABASE_ANDA"; 
-        const SB_KEY = "ANON_KEY_ANDA";
-        
-        // Inisialisasi 'db' secara global agar dikenali di semua fungsi
-        const db = supabase.createClient(SB_URL, SB_KEY);
-
+        // --- LOGIKA APLIKASI ---
         let cart = [];
 
-        // --- FUNGSI SAVE PRODUCT ---
+        // Menggunakan 'supabaseClient' sesuai dengan file supabase.js Anda
         async function saveProduct() {
             const name = document.getElementById('p_name').value;
             const sku = document.getElementById('p_sku').value;
@@ -114,39 +104,40 @@
             const price = parseInt(document.getElementById('p_price').value) || 0;
             const stock = parseInt(document.getElementById('p_stock').value) || 0;
 
-            if(!name || !qr) return alert("Nama Produk dan QR String wajib diisi!");
+            if(!name || !qr) return alert("Nama dan QR wajib diisi!");
 
-            const product = {
-                nama_barang: name,
-                sku: sku,
-                qr_code: qr,
-                harga_jual: price,
-                stok_sekarang: stock,
-                tampil_online: true
-            };
+            const { error } = await supabaseClient
+                .from('produk') // Sesuaikan dengan nama tabel di DB Anda (produk / products)
+                .insert([{
+                    nama_barang: name,
+                    sku: sku,
+                    qr_code: qr,
+                    harga_jual: price,
+                    stok_sekarang: stock,
+                    tampil_online: true
+                }]);
 
-            const { error } = await db.from('produk').insert([product]);
-            
-            if (error) {
-                alert("Gagal menyimpan: " + error.message);
-            } else {
+            if (error) alert("Error: " + error.message);
+            else {
                 alert("Inventory Updated! ✨");
                 location.reload();
             }
         }
 
-        // --- FUNGSI SCAN & KERANJANG ---
         function onScanSuccess(decodedText) {
             findProduct(decodedText);
         }
 
         async function findProduct(qrCode) {
-            const { data, error } = await db.from('produk').select('*').eq('qr_code', qrCode).single();
+            const { data, error } = await supabaseClient
+                .from('produk')
+                .select('*')
+                .eq('qr_code', qrCode)
+                .single();
+
             if (data) {
                 cart.push(data);
                 updateCartUI();
-            } else {
-                console.log("Produk tidak ditemukan.");
             }
         }
 
@@ -169,7 +160,7 @@
                         </div>
                         <div class="flex items-center gap-4">
                             <span class="font-black text-slate-800 text-sm">Rp ${item.harga_jual.toLocaleString()}</span>
-                            <button onclick="removeItem(${index})" class="w-8 h-8 rounded-full bg-white text-red-400 flex items-center justify-center shadow-sm hover:bg-red-500 hover:text-white transition">
+                            <button onclick="removeItem(${index})" class="w-8 h-8 rounded-full bg-white text-red-400 flex items-center justify-center shadow-sm">
                                 <i class="fas fa-times text-[10px]"></i>
                             </button>
                         </div>
@@ -189,16 +180,17 @@
             updateCartUI();
         }
 
-        // --- FUNGSI CHECKOUT ---
         async function checkout() {
-            if (cart.length === 0) return alert("Scan produk terlebih dahulu!");
+            if (cart.length === 0) return alert("Scan produk dulu!");
             const total = cart.reduce((acc, curr) => acc + curr.harga_jual, 0);
 
-            // 1. Simpan ke tabel transactions
-            const { data: trans, error: tErr } = await db.from('transactions').insert([{ total_amount: total }]).select().single();
-            if (tErr) return alert("Transaksi Gagal: " + tErr.message);
+            const { data: trans, error: tErr } = await supabaseClient
+                .from('transactions')
+                .insert([{ total_amount: total }])
+                .select().single();
 
-            // 2. Simpan ke transaction_items
+            if (tErr) return alert(tErr.message);
+
             const items = cart.map(i => ({ 
                 transaction_id: trans.id, 
                 product_id: i.id, 
@@ -206,18 +198,15 @@
                 subtotal: i.harga_jual 
             }));
 
-            const { error: iErr } = await db.from('transaction_items').insert(items);
+            const { error: iErr } = await supabaseClient.from('transaction_items').insert(items);
 
             if (!iErr) {
-                alert("Delta Lunox: Transaksi Berhasil! 🌸");
+                alert("Transaksi Berhasil! 🌸");
                 cart = [];
                 updateCartUI();
-            } else {
-                alert("Gagal menyimpan item: " + iErr.message);
             }
         }
 
-        // Inisialisasi Scanner
         const scanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: 250 });
         scanner.render(onScanSuccess);
     </script>
