@@ -6,7 +6,8 @@
     <title>Delta Lunox | Finex POS System 💎</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase.js"></script> <script src="https://cdn.tailwindcss.com"></script>
+    <script src="supabase.js"></script> 
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
@@ -43,23 +44,23 @@
                     <i class="fas fa-qrcode text-blue-500"></i>
                 </div>
                 <div id="reader" class="bg-slate-100"></div>
-                <p class="text-[10px] text-center mt-4 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Arahkan Kamera ke Kode Produk</p>
+                <p class="text-[10px] text-center mt-4 text-slate-400 font-bold uppercase tracking-widest animate-pulse">Arahkan Kamera ke Kode Produk (Contoh: 0001)</p>
             </div>
 
             <div class="card-premium p-8 shadow-lg shadow-slate-100">
-                <h3 class="font-black text-slate-800 uppercase text-sm tracking-widest mb-6 border-b pb-2">Add New Inventory</h3>
+                <h3 class="font-black text-slate-800 uppercase text-sm tracking-widest mb-6 border-b pb-2">Registrasi Produk Baru</h3>
                 <div class="space-y-4">
-                    <input type="text" id="p_name" placeholder="Product Name" class="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
+                    <input type="text" id="p_name" placeholder="Nama Produk" class="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
                     <div class="grid grid-cols-2 gap-4">
-                        <input type="text" id="p_sku" placeholder="SKU Code" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
-                        <input type="text" id="p_qr" placeholder="QR String" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
+                        <input type="text" id="p_sku" placeholder="SKU (Contoh: SKU001)" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
+                        <input type="text" id="p_qr" placeholder="Kode QR (Contoh: 0001)" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none text-pink-500 font-bold">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <input type="number" id="p_price" placeholder="Retail Price" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
-                        <input type="number" id="p_stock" placeholder="Initial Stock" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
+                        <input type="number" id="p_price" placeholder="Harga Jual" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
+                        <input type="number" id="p_stock" placeholder="Stok Awal" class="bg-slate-50 border-none p-4 rounded-2xl text-xs font-semibold outline-none">
                     </div>
                     <button onclick="saveProduct()" class="w-full btn-primary py-4 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-slate-200">
-                        Update Database ✨
+                        Simpan ke Database ✨
                     </button>
                 </div>
             </div>
@@ -93,21 +94,19 @@
     </main>
 
 <script>
-    // --- LOGIKA APLIKASI DELTA LUNOX ---
     let cart = [];
+    let isScanning = false; // Pengunci agar tidak double scan
 
-    // 1. FUNGSI SIMPAN PRODUK (Input Inventory)
+    // 1. INPUT PRODUK BARU
     async function saveProduct() {
-        // Mengambil data dari ID input HTML
         const nameValue = document.getElementById('p_name').value;
         const skuValue = document.getElementById('p_sku').value;
         const qrValue = document.getElementById('p_qr').value;
         const priceValue = parseFloat(document.getElementById('p_price').value) || 0;
         const stockValue = parseInt(document.getElementById('p_stock').value) || 0;
 
-        if(!nameValue || !qrValue || !skuValue) return alert("Nama, SKU, dan QR wajib diisi!");
+        if(!nameValue || !qrValue || !skuValue) return alert("Mohon isi semua data!");
 
-        // SESUAIKAN DENGAN KOLOM SQL ANDA: name, sku, qr_code, price, stock
         const { error } = await supabaseClient
             .from('products') 
             .insert([{
@@ -119,15 +118,23 @@
             }]);
 
         if (error) {
-            alert("Gagal Simpan ke Database: " + error.message);
+            alert("Error: " + error.message);
         } else {
-            alert("Inventory Delta Lunox Updated! ✨");
-            location.reload();
+            alert("Produk " + nameValue + " Berhasil Disimpan!");
+            // Reset form tanpa reload
+            document.getElementById('p_name').value = "";
+            document.getElementById('p_sku').value = "";
+            document.getElementById('p_qr').value = "";
+            document.getElementById('p_price').value = "";
+            document.getElementById('p_stock').value = "";
         }
     }
 
-    // 2. FUNGSI SCAN QR (Mencari Produk)
+    // 2. SCAN & CARI PRODUK OTOMATIS
     async function findProduct(qrCode) {
+        if(isScanning) return; // Jika sedang proses cari, abaikan scan baru
+        isScanning = true;
+
         const { data, error } = await supabaseClient
             .from('products')
             .select('*')
@@ -137,12 +144,15 @@
         if (data) {
             cart.push(data);
             updateCartUI();
+            console.log("Berhasil menambah: " + data.name);
         } else {
-            console.log("Produk tidak terdaftar di database.");
+            console.log("Kode " + qrCode + " tidak ada di database.");
         }
+
+        // Buka kunci scan setelah 1.5 detik agar user bisa scan barang berikutnya
+        setTimeout(() => { isScanning = false; }, 1500);
     }
 
-    // 3. FUNGSI UPDATE TAMPILAN KERANJANG
     function updateCartUI() {
         const list = document.getElementById('cart-list');
         list.innerHTML = "";
@@ -172,25 +182,17 @@
         document.getElementById('total-price').innerText = "Rp " + total.toLocaleString();
     }
 
-    // 4. FUNGSI CHECKOUT (Simpan Transaksi)
     async function checkout() {
-        if (cart.length === 0) return alert("Pilih barang dulu!");
-        
+        if (cart.length === 0) return alert("Keranjang masih kosong!");
         const totalAmount = cart.reduce((acc, curr) => acc + parseFloat(curr.price), 0);
 
-        // A. Simpan ke tabel 'transactions'
         const { data: trans, error: tErr } = await supabaseClient
             .from('transactions')
-            .insert([{ 
-                total_amount: totalAmount,
-                payment_method: 'Tunai' 
-            }])
+            .insert([{ total_amount: totalAmount, payment_method: 'Tunai' }])
             .select().single();
 
-        if (tErr) return alert("Gagal Transaksi: " + tErr.message);
+        if (tErr) return alert(tErr.message);
 
-        // B. Simpan ke tabel 'transaction_items'
-        // Kolom di SQL: transaction_id, product_id, quantity, subtotal
         const items = cart.map(i => ({ 
             transaction_id: trans.id, 
             product_id: i.id, 
@@ -198,16 +200,12 @@
             subtotal: i.price 
         }));
 
-        const { error: iErr } = await supabaseClient
-            .from('transaction_items')
-            .insert(items);
+        const { error: iErr } = await supabaseClient.from('transaction_items').insert(items);
 
         if (!iErr) {
-            alert("Delta Lunox: Transaksi Berhasil! Stok otomatis terpotong melalui Trigger SQL. 🌸");
+            alert("Transaksi Sukses! Stok Berkurang 🌸");
             cart = [];
             updateCartUI();
-        } else {
-            alert("Item Gagal Disimpan: " + iErr.message);
         }
     }
 
@@ -225,7 +223,12 @@
         findProduct(decodedText);
     }
 
-    const scanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: 250 });
+    // Inisialisasi Scanner (Optimalkan untuk HP)
+    const scanner = new Html5QrcodeScanner("reader", { 
+        fps: 20, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0 
+    });
     scanner.render(onScanSuccess);
 </script>
 </body>
