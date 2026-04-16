@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Delta Lunox | Warehouse Out 📦</title>
+    <title>Delta Lunox | Warehouse Transfer 📦</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script> 
@@ -16,164 +16,141 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: white; }
         .card-dark { background: #1e293b; border-radius: 35px; border: 1px solid rgba(255,255,255,0.05); }
         #reader { width: 100%; border-radius: 25px; overflow: hidden; background: #000; aspect-ratio: 1/1; }
-        .item-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: all 0.3s; }
+        .dept-btn { transition: all 0.3s ease; border: 2px solid transparent; }
+        .dept-btn.active { border-color: #3b82f6; background: #1e3a8a; transform: scale(0.95); }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4">
 
     <div class="max-w-md mx-auto">
-        <div class="flex items-center gap-4 mb-8">
-            <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/20">
-                <i class="fas fa-box-open text-white"></i>
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 bg-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <i class="fas fa-exchange-alt text-white"></i>
             </div>
             <div>
-                <h1 class="text-xl font-black uppercase tracking-tight">Warehouse Out</h1>
-                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em]">Validasi & Potong Stok</p>
+                <h1 class="text-xl font-black uppercase tracking-tight">Stock Transfer</h1>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Gudang Utama → Departemen</p>
+            </div>
+        </div>
+
+        <div class="card-dark p-6 mb-6 shadow-xl">
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Pilih Departemen Tujuan:</label>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="setTarget('KTV')" class="dept-btn p-3 bg-slate-800 rounded-xl text-[10px] font-bold uppercase tracking-widest" id="btn-KTV">KTV</button>
+                <button onclick="setTarget('SPA')" class="dept-btn p-3 bg-slate-800 rounded-xl text-[10px] font-bold uppercase tracking-widest" id="btn-SPA">SPA</button>
+                <button onclick="setTarget('CABANA')" class="dept-btn p-3 bg-slate-800 rounded-xl text-[10px] font-bold uppercase tracking-widest" id="btn-CABANA">CABANA</button>
+                <button onclick="setTarget('KITCHEN')" class="dept-btn p-3 bg-slate-800 rounded-xl text-[10px] font-bold uppercase tracking-widest" id="btn-KITCHEN">KITCHEN</button>
             </div>
         </div>
 
         <div class="card-dark p-6 shadow-2xl">
             <div id="reader" class="mb-6"></div>
             
-            <button id="btn-start" onclick="startWarehouseScan()" class="w-full bg-white text-slate-900 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all mb-6">
-                <i class="fas fa-video mr-2"></i> Aktifkan Kamera Belakang
+            <button id="btn-start" onclick="startWarehouseScan()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest mb-6">
+                Aktifkan Kamera Belakang
             </button>
 
-            <div class="flex justify-between items-center mb-4 px-2">
-                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Barang Terpindai</h3>
-                <span id="scan-count" class="text-[10px] bg-blue-600 px-2 py-0.5 rounded-full font-bold">0</span>
+            <div id="warehouse-list" class="space-y-3 max-h-[200px] overflow-y-auto pr-2 mb-8">
+                <div class="text-center py-6 text-slate-500 text-[10px] font-bold uppercase">Menunggu scan...</div>
             </div>
 
-            <div id="warehouse-list" class="space-y-3 max-h-[250px] overflow-y-auto pr-2 mb-8">
-                <div class="text-center py-10 text-slate-500 text-[10px] font-bold uppercase tracking-widest">Siap memindai barang...</div>
-            </div>
-
-            <div class="pt-6 border-t border-slate-700">
-                <button onclick="finalizeWarehouseStock()" class="w-full bg-green-500 hover:bg-green-400 text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-green-900/20 active:scale-95 transition-all">
-                    Konfirmasi Keluar Barang ✨
-                </button>
-                <p class="text-center text-[8px] text-slate-500 mt-4 uppercase font-bold tracking-widest">Stok akan terpotong otomatis setelah konfirmasi</p>
-            </div>
+            <button onclick="finalizeTransfer()" class="w-full bg-green-500 text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all">
+                Konfirmasi Transfer Barang
+            </button>
         </div>
     </div>
 
 <script>
     let scannedItems = [];
+    let targetDept = "";
     let isProcessing = false;
     let html5QrCode;
 
-    // Memulai Kamera Belakang
-    function startWarehouseScan() {
-        html5QrCode = new Html5Qrcode("reader");
-        const config = { fps: 20, qrbox: { width: 250, height: 250 } };
+    // Fungsi Pilih Tujuan
+    function setTarget(dept) {
+        targetDept = dept;
+        // Reset warna semua tombol
+        document.querySelectorAll('.dept-btn').forEach(btn => btn.classList.remove('active'));
+        // Aktifkan tombol yang dipilih
+        document.getElementById('btn-' + dept).classList.add('active');
+        if (navigator.vibrate) navigator.vibrate(50);
+    }
 
-        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+    function startWarehouseScan() {
+        if (!targetDept) return alert("Pilih departemen tujuan (KTV/SPA/dll) terlebih dahulu!");
+        
+        html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (txt) => {
             if (isProcessing) return;
             isProcessing = true;
-            
-            // Suara/Getar feedback
             if (navigator.vibrate) navigator.vibrate(100);
-            
-            handleItemScanned(decodedText);
-            
-            // Jeda agar tidak scan barang yang sama terlalu cepat
+            handleItemScanned(txt);
             setTimeout(() => { isProcessing = false; }, 1500);
-        })
-        .then(() => {
-            document.getElementById('btn-start').classList.add('hidden');
-        })
-        .catch(err => alert("Kamera error: " + err));
+        }).then(() => document.getElementById('btn-start').classList.add('hidden'));
     }
 
-    // Proses pencarian barang setelah scan
     async function handleItemScanned(qrCode) {
-        const { data, error } = await supabaseClient
-            .from('products')
-            .select('*')
-            .eq('qr_code', qrCode)
-            .single();
-
+        const { data } = await supabaseClient.from('products').select('*').eq('qr_code', qrCode).single();
         if (data) {
-            // Tambahkan ke array scan (mendukung multiple scan barang yang sama)
-            scannedItems.push({
-                id: data.id,
-                name: data.name,
-                current_stock: data.stock,
-                qr: qrCode
-            });
-            updateWarehouseUI();
-        } else {
-            console.warn("QR tidak terdaftar di database.");
+            scannedItems.push({ ...data, destination: targetDept });
+            updateUI();
         }
     }
 
-    function updateWarehouseUI() {
+    function updateUI() {
         const list = document.getElementById('warehouse-list');
-        document.getElementById('scan-count').innerText = scannedItems.length;
-        
         if (scannedItems.length === 0) {
-            list.innerHTML = `<div class="text-center py-10 text-slate-500 text-[10px] font-bold uppercase tracking-widest">Siap memindai barang...</div>`;
+            list.innerHTML = `<div class="text-center py-6 text-slate-500 text-[10px] font-bold uppercase">Menunggu scan...</div>`;
             return;
         }
-
         list.innerHTML = scannedItems.map((item, index) => `
-            <div class="item-row flex justify-between items-center p-4 rounded-2xl">
+            <div class="flex justify-between items-center p-4 bg-slate-800 rounded-xl border-l-4 border-blue-500">
                 <div class="text-left">
-                    <p class="text-[10px] font-black uppercase text-slate-200">${item.name}</p>
-                    <p class="text-[8px] font-bold text-slate-500 uppercase">Stok Saat Ini: ${item.current_stock}</p>
+                    <p class="text-[10px] font-black uppercase">${item.name}</p>
+                    <p class="text-[8px] font-bold text-blue-400 uppercase">Tujuan: ${item.destination}</p>
                 </div>
-                <button onclick="removeScanItem(${index})" class="text-red-400 p-2">
-                    <i class="fas fa-times text-xs"></i>
-                </button>
+                <button onclick="removeScanItem(${index})" class="text-red-400 p-2 text-xs"><i class="fas fa-times"></i></button>
             </div>
-        `).reverse().join(''); // Yang terbaru muncul di atas
+        `).reverse().join('');
     }
 
     function removeScanItem(index) {
         scannedItems.splice(index, 1);
-        updateWarehouseUI();
+        updateUI();
     }
 
-    // FINAL: POTONG STOK DI DATABASE
-    async function finalizeWarehouseStock() {
-        if (scannedItems.length === 0) return alert("Belum ada barang yang di-scan!");
-
-        const confirmFinal = confirm(`Konfirmasi pengeluaran ${scannedItems.length} item dari gudang?`);
-        if (!confirmFinal) return;
+    async function finalizeTransfer() {
+        if (scannedItems.length === 0) return alert("Belum ada barang di-scan!");
+        
+        const confirmMsg = confirm(`Transfer ${scannedItems.length} barang ke departemen ${targetDept}?`);
+        if (!confirmMsg) return;
 
         try {
-            // Kelompokkan barang untuk menghitung total pengurangan per ID
-            // Contoh: Scan barang A 3 kali, maka stok A dikurangi 3.
-            const stockChanges = scannedItems.reduce((acc, item) => {
-                acc[item.id] = (acc[item.id] || 0) + 1;
-                return acc;
-            }, {});
+            for (let item of scannedItems) {
+                // Update stok di gudang utama (mengurangi)
+                const { data: prod } = await supabaseClient.from('products').select('stock').eq('id', item.id).single();
+                const newStock = (prod.stock || 0) - 1;
 
-            for (const [productId, qtyToReduce] of Object.entries(stockChanges)) {
-                // Ambil stok terbaru dulu dari DB (mencegah data lama)
-                const { data: currentProduct } = await supabaseClient
-                    .from('products')
-                    .select('stock')
-                    .eq('id', productId)
-                    .single();
-
-                const newStock = (currentProduct.stock || 0) - qtyToReduce;
-
-                // Update ke Supabase
-                const { error } = await supabaseClient
-                    .from('products')
-                    .update({ stock: newStock })
-                    .eq('id', productId);
-
-                if (error) throw error;
+                await supabaseClient.from('products').update({ stock: newStock }).eq('id', item.id);
+                
+                // Catat mutasi/transfer (Opsional: Jika Anda punya tabel 'stock_movements')
+                /*
+                await supabaseClient.from('stock_movements').insert([{
+                    product_id: item.id,
+                    qty: 1,
+                    from_location: 'MAIN_WAREHOUSE',
+                    to_location: item.destination,
+                    type: 'TRANSFER'
+                }]);
+                */
             }
-
-            alert("📦 Stok Berhasil Diperbarui! Barang keluar tercatat.");
+            alert("Transfer Berhasil! Stok Gudang Utama telah diperbarui.");
             scannedItems = [];
-            updateWarehouseUI();
-
+            targetDept = "";
+            document.querySelectorAll('.dept-btn').forEach(btn => btn.classList.remove('active'));
+            updateUI();
         } catch (err) {
-            alert("Terjadi kesalahan saat update stok: " + err.message);
+            alert("Gagal: " + err.message);
         }
     }
 </script>
