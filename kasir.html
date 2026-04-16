@@ -2,100 +2,199 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Delta Lunox | POS Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delta Lunox | POS Terminal (Webcam Mode)</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script> 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
         .card-premium { background: white; border-radius: 35px; border: 1px solid rgba(0,0,0,0.05); }
-        #reader { border: none !important; border-radius: 25px; overflow: hidden; }
+        /* Styling khusus area kamera agar terlihat profesional di desktop */
+        #reader { 
+            border: none !important; 
+            border-radius: 25px; 
+            overflow: hidden; 
+            background: #1e293b;
+        }
+        #reader__dashboard_section_csr button {
+            background: #3b82f6 !important;
+            color: white !important;
+            border-radius: 10px !important;
+            padding: 8px 15px !important;
+            text-transform: uppercase !important;
+            font-size: 10px !important;
+            font-weight: bold !important;
+        }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-6">
 
-    <nav class="flex justify-between items-center mb-8">
+    <nav class="max-w-7xl mx-auto flex justify-between items-center mb-8">
         <div class="flex flex-col">
-            <h1 class="text-xl font-black text-slate-800 uppercase">Delta Lunox</h1>
-            <p class="text-[9px] font-bold text-blue-500 uppercase tracking-widest text-left">POS Terminal</p>
+            <h1 class="text-2xl font-black text-slate-800 tracking-tighter uppercase">Delta Lunox</h1>
+            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] text-left">Webcam POS System</p>
         </div>
-        <a href="input-produk.html" class="text-[10px] font-bold text-slate-400 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-100 transition">Ke Input Produk →</a>
+        <a href="input-produk.html" class="bg-white border border-slate-200 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition shadow-sm">
+            <i class="fas fa-plus-circle mr-2"></i> Input Stok Baru
+        </a>
     </nav>
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
         <div class="lg:col-span-5">
             <div class="card-premium p-6 shadow-xl shadow-slate-200/50">
-                <div id="reader" class="bg-slate-100"></div>
-                <p class="text-[10px] text-center mt-4 text-slate-400 font-bold uppercase tracking-widest">Scan Produk (0001, 0002, dll)</p>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-black text-slate-800 uppercase text-xs tracking-widest">Webcam Scanner</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase">Live Cam</span>
+                    </div>
+                </div>
+                
+                <div id="reader"></div>
+                
+                <div class="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                    <p class="text-[10px] text-blue-600 font-bold uppercase tracking-tight leading-relaxed">
+                        <i class="fas fa-info-circle mr-1"></i> Tip: Dekatkan barcode/QR (0001, 0002) ke arah webcam hingga terdeteksi otomatis.
+                    </p>
+                </div>
             </div>
         </div>
 
         <div class="lg:col-span-7">
-            <div class="card-premium p-8 shadow-2xl shadow-slate-200 min-h-[500px] flex flex-col">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-black text-slate-800 uppercase">Checkout</h2>
-                    <button onclick="clearCart()" class="text-xs font-bold text-red-400">Reset</button>
+            <div class="card-premium p-8 shadow-2xl shadow-slate-200 flex flex-col h-full min-h-[550px]">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase">Checkout List</h3>
+                    <button onclick="clearCart()" class="text-[10px] font-black text-red-400 uppercase tracking-widest hover:bg-red-50 px-4 py-2 rounded-xl transition">Reset</button>
                 </div>
-                <div id="cart-list" class="flex-grow space-y-4"></div>
-                <div class="mt-8 pt-6 border-t border-dashed">
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="text-xs font-bold text-slate-400 uppercase">Total</span>
-                        <span id="total-price" class="text-2xl font-black text-slate-800 tracking-tighter text-right">Rp 0</span>
+
+                <div id="cart-list" class="flex-grow space-y-4 overflow-y-auto pr-2" style="max-height: 350px;">
+                    <div class="text-center py-20 text-slate-300 font-bold uppercase text-[10px] tracking-widest">Menunggu Scan Barang...</div>
+                </div>
+
+                <div class="mt-8 pt-8 border-t border-dashed border-slate-200">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Tagihan</span>
+                        <span id="total-price" class="text-4xl font-black text-slate-800 tracking-tighter text-right">Rp 0</span>
                     </div>
-                    <button onclick="checkout()" class="w-full bg-[#f72585] text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg shadow-pink-100">Bayar Sekarang</button>
+                    <button onclick="checkout()" class="w-full bg-[#f72585] hover:bg-pink-600 text-white py-5 rounded-[25px] text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-pink-100 transition-all active:scale-95">
+                        Selesaikan Transaksi 🌸
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        let cart = [];
-        let isScanning = false;
+<script>
+    let cart = [];
+    let isScanning = false;
 
-        async function findProduct(qrCode) {
-            if(isScanning) return;
-            isScanning = true;
+    // Fungsi Mencari Produk di Database
+    async function findProduct(qrCode) {
+        if (isScanning) return;
+        isScanning = true;
 
-            const { data } = await supabaseClient.from('products').select('*').eq('qr_code', qrCode).single();
-            if (data) {
-                cart.push(data);
-                updateUI();
-            }
-            setTimeout(() => { isScanning = false; }, 1500);
+        const { data, error } = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('qr_code', qrCode)
+            .single();
+
+        if (data) {
+            cart.push(data);
+            updateCartUI();
+            // Optional: Tambahkan suara bip di sini jika perlu
+        } else {
+            console.warn("Produk tidak ditemukan untuk kode:", qrCode);
         }
 
-        function updateUI() {
-            const list = document.getElementById('cart-list');
-            list.innerHTML = cart.length === 0 ? '<p class="text-center text-slate-300 py-10">Kosong</p>' : '';
-            let total = 0;
-            cart.forEach((item, index) => {
-                total += parseFloat(item.price);
-                list.innerHTML += `<div class="flex justify-between p-4 bg-slate-50 rounded-2xl">
-                    <div class="text-left"><p class="text-xs font-black uppercase">${item.name}</p></div>
-                    <p class="font-black">Rp ${item.price.toLocaleString()}</p>
-                </div>`;
-            });
-            document.getElementById('total-price').innerText = "Rp " + total.toLocaleString();
+        // Jeda 1.2 detik agar tidak terscan ganda oleh webcam
+        setTimeout(() => { isScanning = false; }, 1200);
+    }
+
+    function updateCartUI() {
+        const list = document.getElementById('cart-list');
+        list.innerHTML = "";
+        let total = 0;
+
+        if (cart.length === 0) {
+            list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold uppercase text-[10px] tracking-widest">Menunggu Scan Barang...</div>`;
         }
 
-        async function checkout() {
-            if (cart.length === 0) return alert("Pilih barang!");
-            const total = cart.reduce((acc, c) => acc + parseFloat(c.price), 0);
-            const { data: trans, error } = await supabaseClient.from('transactions').insert([{ total_amount: total }]).select().single();
-            if (error) return alert(error.message);
-            
-            const items = cart.map(i => ({ transaction_id: trans.id, product_id: i.id, quantity: 1, subtotal: i.price }));
-            await supabaseClient.from('transaction_items').insert(items);
-            alert("Berhasil!"); cart = []; updateUI();
-        }
+        cart.forEach((item, index) => {
+            total += parseFloat(item.price);
+            list.innerHTML += `
+                <div class="flex justify-between items-center p-5 bg-slate-50 rounded-[25px] border border-white shadow-sm">
+                    <div class="flex flex-col text-left">
+                        <span class="text-[11px] font-black text-slate-700 uppercase leading-tight">${item.name}</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-tighter">SKU: ${item.sku}</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="font-black text-slate-800 text-sm text-right">Rp ${parseFloat(item.price).toLocaleString()}</span>
+                        <button onclick="removeItem(${index})" class="text-red-300 hover:text-red-500 transition px-2">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        document.getElementById('total-price').innerText = "Rp " + total.toLocaleString();
+    }
 
-        const scanner = new Html5QrcodeScanner("reader", { fps: 20, qrbox: 250 });
-        scanner.render(txt => findProduct(txt));
-        function clearCart() { cart = []; updateUI(); }
-    </script>
+    async function checkout() {
+        if (cart.length === 0) return alert("Pilih barang dulu!");
+        const totalAmount = cart.reduce((acc, curr) => acc + parseFloat(curr.price), 0);
+
+        const { data: trans, error: tErr } = await supabaseClient
+            .from('transactions')
+            .insert([{ total_amount: totalAmount, payment_method: 'Tunai' }])
+            .select().single();
+
+        if (tErr) return alert("Gagal: " + tErr.message);
+
+        const items = cart.map(i => ({ 
+            transaction_id: trans.id, 
+            product_id: i.id, 
+            quantity: 1, 
+            subtotal: i.price 
+        }));
+
+        const { error: iErr } = await supabaseClient.from('transaction_items').insert(items);
+
+        if (!iErr) {
+            alert("Transaksi Berhasil! Stok Terpotong. 🌸");
+            cart = [];
+            updateCartUI();
+        }
+    }
+
+    function removeItem(index) {
+        cart.splice(index, 1);
+        updateCartUI();
+    }
+
+    function clearCart() {
+        cart = [];
+        updateCartUI();
+    }
+
+    // KONFIGURASI SCANNER UNTUK WEBCAM
+    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+        fps: 20,           // Kecepatan frame tinggi agar webcam lancar
+        qrbox: 250,        // Area fokus scan
+        aspectRatio: 1.0   // Kotak simetris
+    });
+
+    html5QrcodeScanner.render((decodedText) => {
+        findProduct(decodedText);
+    });
+
+</script>
 </body>
 </html>
