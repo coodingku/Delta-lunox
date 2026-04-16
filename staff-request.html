@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delta Lunox | Stock Request</title>
+    <title>Delta Lunox | Staff Request System</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script> 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
-        .card-request { background: white; border-radius: 25px; border: 1px solid rgba(0,0,0,0.05); }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .card-request { background: white; border-radius: 30px; border: 1px solid rgba(0,0,0,0.05); }
+        .search-results { position: absolute; width: 100%; top: 100%; z-index: 50; }
         @media print {
-            .no-print { display: none; }
+            .no-print { display: none !important; }
             .print-only { display: block !important; }
             body { background: white; padding: 0; }
         }
@@ -21,81 +22,148 @@
 </head>
 <body class="p-6">
 
-    <div class="max-w-2xl mx-auto no-print">
+    <div class="max-w-xl mx-auto no-print">
         <div class="flex flex-col mb-8">
-            <h1 class="text-2xl font-black text-slate-800 uppercase tracking-tighter">Stock Request</h1>
-            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Pilih Barang yang Akan Diambil</p>
+            <h1 class="text-2xl font-black text-slate-800 uppercase tracking-tighter">Staff Stock Request</h1>
+            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Cari produk berdasarkan nama untuk request</p>
         </div>
 
-        <div class="card-request p-6 shadow-xl space-y-4">
-            <div class="flex gap-2">
-                <input type="text" id="scan_input" placeholder="Scan/Ketik Kode QR..." 
-                    class="flex-grow bg-slate-100 p-4 rounded-xl text-sm font-semibold outline-none focus:ring-2 ring-blue-500">
-                <button onclick="addToRequest()" class="bg-slate-800 text-white px-6 rounded-xl font-black text-[10px] uppercase">Tambah</button>
+        <div class="card-request p-8 shadow-2xl shadow-slate-200 space-y-6">
+            
+            <div class="relative">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Cari Nama Produk</label>
+                <div class="flex gap-2">
+                    <div class="relative flex-grow">
+                        <input type="text" id="search_input" oninput="searchProductName()" placeholder="Ketik nama produk..." 
+                            class="w-full bg-slate-50 p-4 rounded-2xl text-sm font-semibold outline-none border-2 border-transparent focus:border-blue-500 transition-all">
+                        
+                        <div id="search_dropdown" class="search-results hidden bg-white shadow-2xl rounded-2xl mt-2 border border-slate-100 overflow-hidden">
+                            </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="request-list" class="space-y-3 py-4 min-h-[200px]">
-                <p class="text-center text-slate-300 text-xs py-10 uppercase font-bold">List Request Kosong</p>
+            <div class="border-t border-dashed border-slate-200 pt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">Daftar Request</h3>
+                    <span id="item-count" class="text-[10px] font-bold text-slate-400">0 Items</span>
+                </div>
+                
+                <div id="request-list" class="space-y-3 min-h-[150px] max-h-[300px] overflow-y-auto pr-2">
+                    <div class="text-center py-10 text-slate-300 text-[10px] uppercase font-bold">Belum ada barang dipilih</div>
+                </div>
             </div>
 
-            <button onclick="processAndPrint()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all">
-                Simpan & Cetak Struk Request 🖨️
+            <button onclick="processAndPrint()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-blue-100 active:scale-95 transition-all">
+                Simpan & Print Struk <i class="fas fa-print ml-2"></i>
             </button>
         </div>
     </div>
 
-    <div id="print-area" class="hidden print-only text-slate-900 p-4">
-        <div class="text-center border-b pb-4 mb-4">
-            <h2 class="font-black text-lg">DELTA LUNOX</h2>
-            <p class="text-[10px] font-bold uppercase tracking-widest">Struk Pengambilan Barang</p>
-            <p id="print-date" class="text-[9px] text-slate-500 mt-1"></p>
+    <div id="print-area" class="hidden print-only p-4 text-slate-900">
+        <div class="text-center border-b-2 border-black pb-4 mb-4">
+            <h2 class="font-black text-xl">DELTA LUNOX</h2>
+            <p class="text-[10px] font-bold uppercase tracking-widest">Request Pengambilan Barang</p>
+            <p id="print-date" class="text-[9px] mt-1"></p>
         </div>
-        <table class="w-full text-xs mb-10">
-            <thead><tr class="text-left border-b font-black uppercase"><th class="py-2">Item</th><th>Qty</th></tr></thead>
+        <table class="w-full text-sm mb-10">
+            <thead>
+                <tr class="text-left border-b border-black">
+                    <th class="py-2">NAMA PRODUK</th>
+                    <th class="py-2 text-right">QTY</th>
+                </tr>
+            </thead>
             <tbody id="print-table-body"></tbody>
         </table>
-        <div class="text-[9px] text-center border-t pt-4">
-            <p>Bawa struk ini ke bagian gudang</p>
-            <p class="font-bold mt-2">Staff Request: __________________</p>
+        <div class="mt-20 flex justify-between px-4">
+            <div class="text-center">
+                <p class="text-[10px] uppercase font-bold mb-10">Staff Toko</p>
+                <p>( ____________ )</p>
+            </div>
+            <div class="text-center">
+                <p class="text-[10px] uppercase font-bold mb-10">Bag. Gudang</p>
+                <p>( ____________ )</p>
+            </div>
         </div>
     </div>
 
     <script>
         let requestItems = [];
 
-        // Menambah item ke list request
-        async function addToRequest() {
-            const input = document.getElementById('scan_input');
-            const { data, error } = await supabaseClient.from('products').select('*').eq('qr_code', input.value).single();
-            
-            if (data) {
-                const existing = requestItems.find(i => i.id === data.id);
-                if (existing) {
-                    existing.quantity += 1;
-                } else {
-                    requestItems.push({ ...data, quantity: 1 });
-                }
-                updateListUI();
-                input.value = "";
-                input.focus();
-            } else {
-                alert("Produk tidak ditemukan!");
+        // FUNGSI CARI NAMA (Real-time dari Supabase)
+        async function searchProductName() {
+            const query = document.getElementById('search_input').value;
+            const dropdown = document.getElementById('search_dropdown');
+
+            if (query.length < 2) {
+                dropdown.classList.add('hidden');
+                return;
             }
+
+            const { data, error } = await supabaseClient
+                .from('products')
+                .select('id, name, qr_code, price')
+                .ilike('name', `%${query}%`) // Mencari nama yang mirip
+                .limit(5);
+
+            if (data && data.length > 0) {
+                dropdown.classList.remove('hidden');
+                dropdown.innerHTML = data.map(item => `
+                    <div onclick='selectItem(${JSON.stringify(item)})' 
+                        class="p-4 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-none transition-colors">
+                        <p class="text-xs font-black text-slate-700 uppercase">${item.name}</p>
+                        <p class="text-[9px] text-slate-400 font-bold">QR: ${item.qr_code}</p>
+                    </div>
+                `).join('');
+            } else {
+                dropdown.innerHTML = `<div class="p-4 text-[10px] text-slate-400 font-bold uppercase">Produk tidak ditemukan</div>`;
+            }
+        }
+
+        // FUNGSI PILIH ITEM DARI DROPDOWN
+        function selectItem(item) {
+            const existing = requestItems.find(i => i.id === item.id);
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                requestItems.push({ ...item, quantity: 1 });
+            }
+            
+            // Reset pencarian
+            document.getElementById('search_input').value = "";
+            document.getElementById('search_dropdown').classList.add('hidden');
+            
+            updateListUI();
         }
 
         function updateListUI() {
             const container = document.getElementById('request-list');
-            container.innerHTML = "";
-            requestItems.forEach((item, index) => {
-                container.innerHTML += `
-                    <div class="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-white">
-                        <div class="text-left">
-                            <p class="text-[11px] font-black text-slate-700 uppercase">${item.name}</p>
-                            <p class="text-[9px] font-bold text-slate-400">Qty: ${item.quantity}</p>
-                        </div>
-                        <button onclick="removeItem(${index})" class="text-red-400 px-2"><i class="fas fa-trash-alt text-xs"></i></button>
-                    </div>`;
-            });
+            document.getElementById('item-count').innerText = requestItems.length + " Items";
+            
+            if (requestItems.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 text-slate-300 text-[10px] uppercase font-bold">Belum ada barang dipilih</div>`;
+                return;
+            }
+
+            container.innerHTML = requestItems.map((item, index) => `
+                <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-white shadow-sm">
+                    <div class="text-left">
+                        <p class="text-[11px] font-black text-slate-700 uppercase leading-tight">${item.name}</p>
+                        <p class="text-[9px] font-bold text-blue-500 mt-1">Quantity: ${item.quantity}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeQty(${index}, -1)" class="w-7 h-7 bg-white rounded-full shadow-sm text-slate-400"><i class="fas fa-minus text-[8px]"></i></button>
+                        <button onclick="changeQty(${index}, 1)" class="w-7 h-7 bg-white rounded-full shadow-sm text-slate-400"><i class="fas fa-plus text-[8px]"></i></button>
+                        <button onclick="removeItem(${index})" class="ml-2 text-red-300"><i class="fas fa-trash-alt text-xs"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function changeQty(index, delta) {
+            requestItems[index].quantity += delta;
+            if (requestItems[index].quantity < 1) requestItems.splice(index, 1);
+            updateListUI();
         }
 
         function removeItem(index) {
@@ -106,19 +174,16 @@
         function processAndPrint() {
             if (requestItems.length === 0) return alert("Pilih barang dulu!");
             
-            // Masukkan ke area cetak
             const printBody = document.getElementById('print-table-body');
-            printBody.innerHTML = "";
-            requestItems.forEach(item => {
-                printBody.innerHTML += `<tr><td class="py-1">${item.name}</td><td>${item.quantity}</td></tr>`;
-            });
-            document.getElementById('print-date').innerText = new Date().toLocaleString();
+            printBody.innerHTML = requestItems.map(item => `
+                <tr class="border-b border-slate-100">
+                    <td class="py-3 font-bold uppercase text-[11px]">${item.name}</td>
+                    <td class="py-3 text-right font-black">${item.quantity}</td>
+                </tr>
+            `).join('');
             
-            // Jalankan Print
+            document.getElementById('print-date').innerText = "Waktu: " + new Date().toLocaleString();
             window.print();
-            
-            // Opsional: Kosongkan list setelah print
-            // requestItems = []; updateListUI();
         }
     </script>
 </body>
