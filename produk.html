@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Produk | Delta Lunox Admin</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script> 
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
+        .card-input { background: white; border-radius: 30px; border: 1px solid rgba(0,0,0,0.05); }
+        .input-custom { 
+            background: #f8fafc; 
+            border: 2px solid #e2e8f0; 
+            transition: all 0.3s ease;
+        }
+        .input-custom:focus { 
+            border-color: #3b82f6; 
+            background: white; 
+            outline: none; 
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .btn-save { 
+            background: #1e293b; 
+            transition: all 0.3s; 
+        }
+        .btn-save:hover { 
+            background: #334155;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="p-6 md:p-12">
+
+    <div class="max-w-xl mx-auto">
+        <div class="flex items-center gap-4 mb-10">
+            <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-blue-600">
+                <i class="fas fa-edit text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Data Inventory</h1>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Input Stok Produk Baru</p>
+            </div>
+        </div>
+
+        <div class="card-input p-8 shadow-2xl shadow-slate-200">
+            <div class="space-y-6">
+                
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Nama Barang</label>
+                    <input type="text" id="p_name" placeholder="Masukkan nama barang..." 
+                        class="w-full input-custom p-4 rounded-2xl text-sm font-semibold text-slate-700">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">SKU Code</label>
+                        <input type="text" id="p_sku" placeholder="SKU-001" 
+                            class="w-full input-custom p-4 rounded-2xl text-sm font-semibold uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">QR String (Scanner)</label>
+                        <input type="text" id="p_qr" placeholder="Contoh: 0001" 
+                            class="w-full input-custom p-4 rounded-2xl text-sm font-bold text-pink-600">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Harga Jual (Rp)</label>
+                        <input type="number" id="p_price" placeholder="0" 
+                            class="w-full input-custom p-4 rounded-2xl text-sm font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Stok Awal</label>
+                        <input type="number" id="p_stock" placeholder="0" 
+                            class="w-full input-custom p-4 rounded-2xl text-sm font-semibold">
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button onclick="saveProduct()" class="w-full btn-save text-white py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-slate-200">
+                        Simpan ke Database <i class="fas fa-check-circle ml-2"></i>
+                    </button>
+                    
+                    <div class="flex justify-between items-center mt-8 px-2">
+                        <a href="kasir.html" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-blue-500 transition">
+                            <i class="fas fa-arrow-left mr-1"></i> Kembali ke Kasir
+                        </a>
+                        <button onclick="resetForm()" class="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-600 transition">
+                            Reset Form
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="conn-status" class="mt-10 flex items-center justify-center gap-3">
+            <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Checking Supabase...</span>
+        </div>
+    </div>
+
+    <script>
+        // Cek koneksi saat startup
+        window.onload = () => {
+            const statusDiv = document.querySelector('#conn-status div');
+            const statusText = document.querySelector('#conn-status span');
+            
+            if (typeof supabaseClient !== 'undefined') {
+                statusDiv.classList.replace('bg-slate-300', 'bg-green-500');
+                statusText.innerText = "Database Connected";
+            } else {
+                statusDiv.classList.replace('bg-slate-300', 'bg-red-500');
+                statusText.innerText = "Check supabase.js connection";
+            }
+        };
+
+        async function saveProduct() {
+            const name = document.getElementById('p_name').value;
+            const sku = document.getElementById('p_sku').value;
+            const qr = document.getElementById('p_qr').value;
+            const price = parseFloat(document.getElementById('p_price').value) || 0;
+            const stock = parseInt(document.getElementById('p_stock').value) || 0;
+
+            if (!name || !qr) {
+                return alert("Nama Barang dan Kode QR wajib diisi!");
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('products')
+                    .insert([{
+                        name: name,
+                        sku: sku,
+                        qr_code: qr,
+                        price: price,
+                        stock: stock
+                    }]);
+
+                if (error) throw error;
+
+                alert("Produk '" + name + "' Berhasil Disimpan!");
+                resetForm();
+                
+            } catch (err) {
+                alert("Gagal menyimpan data: " + err.message);
+                console.error(err);
+            }
+        }
+
+        function resetForm() {
+            document.querySelectorAll('input').forEach(input => input.value = "");
+            document.getElementById('p_name').focus();
+        }
+    </script>
+</body>
+</html>
