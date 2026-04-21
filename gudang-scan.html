@@ -19,6 +19,7 @@
         .dept-btn { transition: all 0.2s ease; border: 2px solid #334155; color: #94a3b8; }
         .dept-btn.active { border-color: #3b82f6; background: #1e40af; color: white; transform: scale(0.98); }
         .item-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+        .search-results { position: absolute; width: 100%; top: 100%; z-index: 50; background: #1e293b; border-radius: 15px; border: 1px solid #334155; max-height: 200px; overflow-y: auto; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -44,20 +45,30 @@
             </div>
         </div>
 
+        <div class="relative mb-6">
+            <div class="bg-slate-800/50 p-2 rounded-2xl border border-slate-700 flex items-center px-4">
+                <i class="fas fa-search text-slate-500 mr-3 text-sm"></i>
+                <input type="text" id="manual_search" oninput="searchManual()" placeholder="Cari nama produk manual..." 
+                    class="bg-transparent w-full p-2 outline-none text-xs font-bold uppercase tracking-widest">
+            </div>
+            <div id="search_results" class="search-results hidden shadow-2xl">
+                </div>
+        </div>
+
         <div class="card-dark p-6 shadow-2xl">
             <div id="reader" class="mb-6 border-2 border-slate-700"></div>
             
             <button id="btn-start" onclick="startScanner()" class="w-full bg-white text-slate-900 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl mb-6">
-                <i class="fas fa-qrcode mr-2"></i> Mulai Scan Barang
+                <i class="fas fa-qrcode mr-2"></i> Mulai Scan Kamera
             </button>
 
             <div class="flex justify-between items-center mb-4 px-2">
-                <h3 class="text-[10px] font-black text-slate-500 uppercase">Terpindai</h3>
+                <h3 class="text-[10px] font-black text-slate-500 uppercase">Daftar Transfer</h3>
                 <span id="scan-count" class="text-[10px] bg-blue-600 px-3 py-1 rounded-full font-black">0</span>
             </div>
 
             <div id="warehouse-list" class="space-y-3 max-h-[200px] overflow-y-auto pr-2 mb-8">
-                <div class="text-center py-6 text-slate-600 text-[10px] font-bold uppercase tracking-widest">Siap Memindai...</div>
+                <div class="text-center py-6 text-slate-600 text-[10px] font-bold uppercase tracking-widest">Kosong</div>
             </div>
 
             <button onclick="finalizeTransfer()" class="w-full bg-green-500 hover:bg-green-400 text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-green-900/20 active:scale-95 transition-all">
@@ -79,6 +90,46 @@
         if (navigator.vibrate) navigator.vibrate(50);
     }
 
+    // FUNGSI CARI MANUAL
+    async function searchManual() {
+        const query = document.getElementById('manual_search').value;
+        const resultBox = document.getElementById('search_results');
+
+        if (query.length < 2) {
+            resultBox.classList.add('hidden');
+            return;
+        }
+
+        const { data, error } = await supabaseClient
+            .from('products')
+            .select('id, name, stok_gudang')
+            .ilike('name', `%${query}%`)
+            .limit(5);
+
+        if (data && data.length > 0) {
+            resultBox.classList.remove('hidden');
+            resultBox.innerHTML = data.map(item => `
+                <div onclick='addManualItem(${JSON.stringify(item)})' class="p-4 border-b border-slate-700 hover:bg-slate-700 cursor-pointer">
+                    <p class="text-[10px] font-black uppercase">${item.name}</p>
+                    <p class="text-[8px] text-slate-500 font-bold uppercase">Stok Gudang: ${item.stok_gudang}</p>
+                </div>
+            `).join('');
+        } else {
+            resultBox.innerHTML = `<div class="p-4 text-[9px] text-slate-500 text-center uppercase">Produk tidak ditemukan</div>`;
+        }
+    }
+
+    function addManualItem(item) {
+        if (!selectedDept) {
+            alert("Pilih unit tujuan dulu!");
+            return;
+        }
+        scannedItems.push({ id: item.id, name: item.name, old_gudang: item.stok_gudang });
+        document.getElementById('manual_search').value = "";
+        document.getElementById('search_results').classList.add('hidden');
+        updateUI();
+    }
+
     function startScanner() {
         if (!selectedDept) {
             alert("Harap pilih unit tujuan (KTV/SPA/dll) terlebih dahulu!");
@@ -89,30 +140,22 @@
         scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (txt) => {
             if (isLocked) return;
             isLocked = true;
-            
             if (navigator.vibrate) navigator.vibrate(100);
             handleScan(txt);
-            
             setTimeout(() => { isLocked = false; }, 1500);
         }).then(() => document.getElementById('btn-start').classList.add('hidden'));
     }
 
     async function handleScan(qrCode) {
-        const { data, error } = await supabaseClient
+        const { data } = await supabaseClient
             .from('products')
             .select('id, name, stok_gudang')
             .eq('qr_code', qrCode)
             .single();
 
         if (data) {
-            scannedItems.push({ 
-                id: data.id, 
-                name: data.name, 
-                old_gudang: data.stok_gudang 
-            });
+            scannedItems.push({ id: data.id, name: data.name, old_gudang: data.stok_gudang });
             updateUI();
-        } else {
-            console.error("Produk tidak ditemukan");
         }
     }
 
@@ -121,7 +164,7 @@
         document.getElementById('scan-count').innerText = scannedItems.length;
         
         if (scannedItems.length === 0) {
-            list.innerHTML = `<div class="text-center py-6 text-slate-600 text-[10px] font-bold uppercase tracking-widest">Siap Memindai...</div>`;
+            list.innerHTML = `<div class="text-center py-6 text-slate-600 text-[10px] font-bold uppercase tracking-widest">Kosong</div>`;
             return;
         }
 
@@ -129,7 +172,7 @@
             <div class="item-row flex justify-between items-center p-4 rounded-2xl">
                 <div class="text-left">
                     <p class="text-[10px] font-black uppercase text-slate-200">${item.name}</p>
-                    <p class="text-[8px] font-bold text-blue-400 uppercase tracking-tighter">Ke: ${selectedDept}</p>
+                    <p class="text-[8px] font-bold text-blue-400 uppercase tracking-tighter">Unit: ${selectedDept}</p>
                 </div>
                 <button onclick="removeItem(${index})" class="text-red-400 p-2"><i class="fas fa-times text-xs"></i></button>
             </div>
@@ -142,30 +185,27 @@
     }
 
     async function finalizeTransfer() {
-        if (scannedItems.length === 0) return alert("Scan barang dulu!");
+        if (scannedItems.length === 0) return alert("Belum ada barang dipilih!");
         if (!selectedDept) return alert("Pilih unit tujuan!");
 
         const confirmTransfer = confirm(`Transfer ${scannedItems.length} barang ke ${selectedDept.toUpperCase()}?`);
         if (!confirmTransfer) return;
 
         try {
-            // Kita hitung total per ID barang yang di-scan
             const summary = scannedItems.reduce((acc, curr) => {
                 acc[curr.id] = (acc[curr.id] || 0) + 1;
                 return acc;
             }, {});
 
-            const targetColumn = `stok_${selectedDept}`; // Misal: stok_ktv
+            const targetColumn = `stok_${selectedDept}`;
 
             for (const [id, qty] of Object.entries(summary)) {
-                // 1. Ambil data stok terkini dari DB
                 const { data: prod } = await supabaseClient
                     .from('products')
                     .select(`stok_gudang, ${targetColumn}`)
                     .eq('id', id)
                     .single();
 
-                // 2. Lakukan Update (Kurangi Gudang, Tambah Unit)
                 const { error } = await supabaseClient
                     .from('products')
                     .update({
