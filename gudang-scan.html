@@ -184,47 +184,41 @@
         updateUI();
     }
 
-    async function finalizeTransfer() {
-        if (scannedItems.length === 0) return alert("Belum ada barang dipilih!");
-        if (!selectedDept) return alert("Pilih unit tujuan!");
+   async function finalizeTransfer() {
+    if (scannedItems.length === 0) return alert("Scan barang dulu!");
+    if (!selectedDept) return alert("Pilih unit tujuan!");
 
-        const confirmTransfer = confirm(`Transfer ${scannedItems.length} barang ke ${selectedDept.toUpperCase()}?`);
-        if (!confirmTransfer) return;
+    try {
+        // Grouping barang
+        const summary = scannedItems.reduce((acc, curr) => {
+            acc[curr.id] = (acc[curr.id] || { name: curr.name, qty: 0 });
+            acc[curr.id].qty += 1;
+            return acc;
+        }, {});
 
-        try {
-            const summary = scannedItems.reduce((acc, curr) => {
-                acc[curr.id] = (acc[curr.id] || 0) + 1;
-                return acc;
-            }, {});
-
-            const targetColumn = `stok_${selectedDept}`;
-
-            for (const [id, qty] of Object.entries(summary)) {
-                const { data: prod } = await supabaseClient
-                    .from('products')
-                    .select(`stok_gudang, ${targetColumn}`)
-                    .eq('id', id)
-                    .single();
-
-                const { error } = await supabaseClient
-                    .from('products')
-                    .update({
-                        stok_gudang: (prod.stok_gudang || 0) - qty,
-                        [targetColumn]: (prod[targetColumn] || 0) + qty
-                    })
-                    .eq('id', id);
-
-                if (error) throw error;
-            }
-
-            alert("📦 Sukses! Stok " + selectedDept.toUpperCase() + " telah bertambah.");
-            scannedItems = [];
-            updateUI();
+        // Simpan ke antrean (Bukan potong stok)
+        for (const [id, item] of Object.entries(summary)) {
+            const { error } = await supabaseClient
+                .from('stock_transfers')
+                .insert([{
+                    product_id: id,
+                    product_name: item.name,
+                    qty: item.qty,
+                    target_loc: selectedDept,
+                    status: 'pending'
+                }]);
             
-        } catch (err) {
-            alert("Error: " + err.message);
+            if (error) throw error;
         }
+
+        alert("🚀 Permintaan transfer telah dikirim! Menunggu Approval Admin.");
+        scannedItems = [];
+        updateUI();
+
+    } catch (err) {
+        alert("Gagal mengirim request: " + err.message);
     }
+}
 </script>
 </body>
 </html>
