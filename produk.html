@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delta Lunox | Inventaris 📦</title>
+    <title>Delta Lunox | Master Produk 📦</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script> 
@@ -17,18 +17,11 @@
         .nav-link { transition: all 0.2s; color: #94a3b8; border-radius: 15px; }
         .nav-link:hover, .nav-link.active { background: #1e293b; color: white; }
         
-        .card-input { background: white; border-radius: 30px; border: 1px solid rgba(0,0,0,0.05); }
-        .input-custom { 
-            background: #f8fafc; 
-            border: 2px solid #e2e8f0; 
-            transition: all 0.3s ease;
-        }
-        .input-custom:focus { 
-            border-color: #3b82f6; 
-            background: white; 
-            outline: none; 
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        }
+        /* Modal UI */
+        .modal { transition: opacity 0.25s ease; z-index: 100; }
+        .input-custom { background: #f8fafc; border: 2px solid #e2e8f0; transition: all 0.3s ease; border-radius: 12px; }
+        .input-custom:focus { border-color: #3b82f6; outline: none; background: white; }
+        .glass-card { background: white; border-radius: 25px; border: 1px solid rgba(0,0,0,0.05); }
     </style>
 </head>
 <body class="flex min-h-screen">
@@ -40,7 +33,6 @@
             </div>
             <h2 class="text-white font-black text-xl tracking-tighter uppercase">Delta Lunox</h2>
         </div>
-
         <nav class="space-y-2 flex-grow">
             <a href="dashboard.html" class="nav-link flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
                 <i class="fas fa-th-large w-5"></i> Dashboard
@@ -49,150 +41,254 @@
                 <i class="fas fa-check-circle w-5"></i> Approval
                 <span id="badge-pending" class="ml-auto bg-pink-600 text-[8px] text-white px-2 py-1 rounded-full hidden">0</span>
             </a>
-            <a href="gudang-scan.html" class="nav-link flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
-                <i class="fas fa-exchange-alt w-5"></i> Transfer Stok
-            </a>
-            <a href="kasir.html" class="nav-link flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
-                <i class="fas fa-cash-register w-5"></i> Kasir POS
-            </a>
-            <div class="pt-4 pb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest px-4">Master Data</div>
             <a href="products.html" class="nav-link active flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
                 <i class="fas fa-box w-5"></i> Inventaris
             </a>
         </nav>
-
-        <div class="mt-auto pt-6 border-t border-slate-800 px-2">
-            <p class="text-[9px] font-bold text-slate-500 uppercase">Current User</p>
-            <p class="text-xs font-black text-white uppercase mt-1 text-left">Sys Admin</p>
-        </div>
     </aside>
 
     <main class="flex-grow p-6 lg:p-10">
-        <header class="flex justify-between items-center mb-8">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-                <h1 class="text-2xl lg:text-3xl font-black tracking-tight uppercase">Manajemen Produk</h1>
-                <p class="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em]">Input & Update Database Produk</p>
+                <h1 class="text-2xl lg:text-3xl font-black tracking-tight uppercase text-slate-800">Master Produk</h1>
+                <p class="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em]">Manajemen Harga & Stok Pusat</p>
             </div>
-            <div id="conn-status" class="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-sm">
-                <div class="w-2 h-2 rounded-full bg-slate-300"></div>
-                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Supabase</span>
+            <div class="flex gap-2">
+                <button onclick="downloadTemplate()" class="bg-white text-slate-600 px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-sm border border-slate-200 hover:bg-slate-50 transition">
+                    <i class="fas fa-download mr-2"></i> Template
+                </button>
+                <button onclick="toggleModal(true)" class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition">
+                    <i class="fas fa-plus mr-2"></i> Tambah Produk
+                </button>
             </div>
         </header>
 
-        <div class="max-w-2xl">
-            <div class="card-input p-8 shadow-xl shadow-slate-200/50">
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 text-left">Nama Barang</label>
-                        <input type="text" id="p_name" placeholder="Masukkan nama barang..." 
-                            class="w-full input-custom p-4 rounded-2xl text-sm font-semibold text-slate-700">
-                    </div>
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div class="flex gap-2">
+                <button onclick="exportToCSV()" class="bg-emerald-500/10 text-emerald-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition">
+                    <i class="fas fa-file-export mr-2"></i> Export
+                </button>
+                <label class="bg-amber-500/10 text-amber-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-white transition cursor-pointer">
+                    <i class="fas fa-file-import mr-2"></i> Import CSV
+                    <input type="file" id="importFile" accept=".csv" class="hidden" onchange="importCSV(this)">
+                </label>
+            </div>
+            <div class="relative w-full md:w-64">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                <input type="text" id="searchBox" onkeyup="filterTable()" placeholder="Cari produk..." class="w-full bg-white border-none rounded-xl py-3 pl-10 pr-4 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 text-left">SKU Code</label>
-                            <input type="text" id="p_sku" placeholder="SKU-001" 
-                                class="w-full input-custom p-4 rounded-2xl text-sm font-semibold uppercase">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 text-left">QR String (Scanner)</label>
-                            <input type="text" id="p_qr" placeholder="KODE QR" 
-                                class="w-full input-custom p-4 rounded-2xl text-sm font-bold text-pink-600">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 text-left text-left">Harga Jual (Rp)</label>
-                            <input type="number" id="p_price" placeholder="0" 
-                                class="w-full input-custom p-4 rounded-2xl text-sm font-semibold">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 text-left">Stok Awal Gudang</label>
-                            <input type="number" id="p_stock" placeholder="0" 
-                                class="w-full input-custom p-4 rounded-2xl text-sm font-semibold">
-                        </div>
-                    </div>
-
-                    <div class="pt-4">
-                        <button onclick="saveProduct()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-slate-300 hover:bg-slate-800 transition-all active:scale-95">
-                            Simpan ke Database <i class="fas fa-check-circle ml-2"></i>
-                        </button>
-                        
-                        <div class="flex justify-center mt-6">
-                            <button onclick="resetForm()" class="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-600 transition">
-                                <i class="fas fa-trash-alt mr-1"></i> Kosongkan Form
-                            </button>
-                        </div>
-                    </div>
-                </div>
+        <div class="glass-card overflow-hidden shadow-xl shadow-slate-200/50">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">Info Produk</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">Harga Beli (HPP)</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">Harga Jual</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-center">Status</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTable" class="divide-y divide-slate-50 text-slate-700">
+                        </tbody>
+                </table>
             </div>
         </div>
     </main>
 
+    <div id="modalProduct" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center">
+        <div class="absolute w-full h-full bg-slate-900/60 backdrop-blur-sm" onclick="toggleModal(false)"></div>
+        <div class="bg-white w-full max-w-md mx-auto rounded-3xl shadow-2xl z-50 overflow-hidden relative">
+            <div class="p-8">
+                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tight mb-6">Tambah Produk</h3>
+                <input type="hidden" id="edit_id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1">Nama Produk</label>
+                        <input type="text" id="p_name" class="w-full input-custom p-3 text-sm font-bold">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1">SKU</label>
+                            <input type="text" id="p_sku" class="w-full input-custom p-3 text-sm font-semibold uppercase">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1">QR String</label>
+                            <input type="text" id="p_qr" class="w-full input-custom p-3 text-sm font-bold text-pink-600">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1">Harga Beli (HPP)</label>
+                            <input type="number" id="p_cost" class="w-full input-custom p-3 text-sm font-bold">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1">Harga Jual</label>
+                            <input type="number" id="p_price" class="w-full input-custom p-3 text-sm font-bold text-blue-600">
+                        </div>
+                    </div>
+                    <div class="flex gap-6 py-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="p_is_sell" checked class="w-4 h-4 rounded text-blue-600 focus:ring-0">
+                            <span class="text-[10px] font-black uppercase text-slate-500">Siap Jual</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="p_is_hpp" checked class="w-4 h-4 rounded text-blue-600 focus:ring-0">
+                            <span class="text-[10px] font-black uppercase text-slate-500">Aktif HPP</span>
+                        </label>
+                    </div>
+                    <button onclick="saveProduct()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest mt-4 hover:bg-blue-600 transition-all shadow-lg">
+                        Simpan Data Produk
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Cek koneksi & Update Badge
-        window.onload = async () => {
-            const statusDiv = document.querySelector('#conn-status div');
-            const statusText = document.querySelector('#conn-status span');
-            
-            if (typeof supabaseClient !== 'undefined') {
-                statusDiv.classList.replace('bg-slate-300', 'bg-green-500');
-                statusText.innerText = "Connected";
-                checkPendingApprovals();
-            } else {
-                statusDiv.classList.replace('bg-slate-300', 'bg-red-500');
-                statusText.innerText = "Offline";
-            }
-        };
+        let allProducts = [];
 
-        async function checkPendingApprovals() {
-            const { count } = await supabaseClient
-                .from('stock_transfers')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'pending');
+        window.onload = () => loadProducts();
 
-            const badge = document.getElementById('badge-pending');
-            if (count > 0) {
-                badge.innerText = count;
-                badge.classList.remove('hidden');
-            }
+        async function loadProducts() {
+            const { data, error } = await supabaseClient.from('products').select('*').order('name');
+            if (error) return console.error(error);
+            allProducts = data;
+            renderTable(data);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('productTable');
+            tbody.innerHTML = data.map(p => `
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="p-5">
+                        <div class="font-black text-xs uppercase text-slate-800">${p.name}</div>
+                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">${p.sku || '-'} | QR: ${p.qr_code}</div>
+                    </td>
+                    <td class="p-5 text-xs font-bold text-slate-500">Rp ${Number(p.cost_price || 0).toLocaleString()}</td>
+                    <td class="p-5 text-xs font-black text-blue-600">Rp ${Number(p.price || 0).toLocaleString()}</td>
+                    <td class="p-5 text-center">
+                        <div class="flex justify-center gap-2">
+                            <span title="Siap Jual" class="${p.is_selling ? 'text-emerald-500' : 'text-slate-200'} text-[10px]"><i class="fas fa-shopping-cart"></i></span>
+                            <span title="HPP Aktif" class="${p.is_hpp_active ? 'text-blue-500' : 'text-slate-200'} text-[10px]"><i class="fas fa-calculator"></i></span>
+                        </div>
+                    </td>
+                    <td class="p-5 text-right space-x-1">
+                        <button onclick="editProduct('${p.id}')" class="w-8 h-8 rounded-lg text-blue-500 hover:bg-blue-50 transition"><i class="fas fa-edit text-xs"></i></button>
+                        <button onclick="deleteProduct('${p.id}', '${p.name}')" class="w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition"><i class="fas fa-trash text-xs"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function toggleModal(show, isEdit = false) {
+            const modal = document.getElementById('modalProduct');
+            document.getElementById('modalTitle').innerText = isEdit ? 'Update Produk' : 'Tambah Produk Baru';
+            if (!show) resetForm();
+            modal.style.opacity = show ? '1' : '0';
+            modal.style.pointerEvents = show ? 'auto' : 'none';
         }
 
         async function saveProduct() {
-            const name = document.getElementById('p_name').value;
-            const sku = document.getElementById('p_sku').value;
-            const qr = document.getElementById('p_qr').value;
-            const price = parseFloat(document.getElementById('p_price').value) || 0;
-            const stock = parseInt(document.getElementById('p_stock').value) || 0;
+            const id = document.getElementById('edit_id').value;
+            const payload = {
+                name: document.getElementById('p_name').value,
+                sku: document.getElementById('p_sku').value,
+                qr_code: document.getElementById('p_qr').value,
+                cost_price: parseFloat(document.getElementById('p_cost').value) || 0,
+                price: parseFloat(document.getElementById('p_price').value) || 0,
+                is_selling: document.getElementById('p_is_sell').checked,
+                is_hpp_active: document.getElementById('p_is_hpp').checked
+            };
 
-            if (!name || !qr) return alert("Nama Barang dan Kode QR wajib diisi!");
+            if (!payload.name || !payload.qr_code) return alert("Nama & QR wajib diisi!");
 
-            try {
-                const { error } = await supabaseClient
-                    .from('products')
-                    .insert([{
-                        name: name,
-                        sku: sku,
-                        qr_code: qr,
-                        price: price,
-                        stok_gudang: stock // Menggunakan nama kolom sesuai schema
-                    }]);
+            const { error } = id 
+                ? await supabaseClient.from('products').update(payload).eq('id', id)
+                : await supabaseClient.from('products').insert([payload]);
 
-                if (error) throw error;
-
-                alert("Produk '" + name + "' Berhasil Disimpan!");
-                resetForm();
-                
-            } catch (err) {
-                alert("Gagal: " + err.message);
-                console.error(err);
+            if (error) alert("Error: " + error.message);
+            else {
+                toggleModal(false);
+                loadProducts();
             }
         }
 
+        function editProduct(id) {
+            const p = allProducts.find(x => x.id === id);
+            document.getElementById('edit_id').value = p.id;
+            document.getElementById('p_name').value = p.name;
+            document.getElementById('p_sku').value = p.sku;
+            document.getElementById('p_qr').value = p.qr_code;
+            document.getElementById('p_cost').value = p.cost_price || 0;
+            document.getElementById('p_price').value = p.price || 0;
+            document.getElementById('p_is_sell').checked = p.is_selling;
+            document.getElementById('p_is_hpp').checked = p.is_hpp_active;
+            toggleModal(true, true);
+        }
+
+        async function deleteProduct(id, name) {
+            if (confirm(`Hapus permanen produk ${name}?`)) {
+                await supabaseClient.from('products').delete().eq('id', id);
+                loadProducts();
+            }
+        }
+
+        function filterTable() {
+            const q = document.getElementById('searchBox').value.toLowerCase();
+            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q)));
+            renderTable(filtered);
+        }
+
+        // --- Fitur Export/Import ---
+        function downloadTemplate() {
+            const headers = ["name", "sku", "qr_code", "cost_price", "price", "is_selling", "is_hpp_active"];
+            const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\nProduk Contoh,SKU-001,KODE-QR,5000,10000,TRUE,TRUE";
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.href = encodedUri; link.download = "template_produk.csv";
+            link.click();
+        }
+
+        function exportToCSV() {
+            const headers = ["Name", "SKU", "QR", "HPP", "Price"];
+            const rows = allProducts.map(p => [p.name, p.sku, p.qr_code, p.cost_price, p.price].join(","));
+            const csv = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
+            const link = document.createElement("a");
+            link.href = encodeURI(csv); link.download = "export_produk.csv";
+            link.click();
+        }
+
+        async function importCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const lines = e.target.result.split("\n");
+                const items = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const col = lines[i].split(",");
+                    if (col.length < 3) continue;
+                    items.push({
+                        name: col[0], sku: col[1], qr_code: col[2],
+                        cost_price: parseFloat(col[3]) || 0, price: parseFloat(col[4]) || 0,
+                        is_selling: col[5]?.trim().toUpperCase() === 'TRUE',
+                        is_hpp_active: col[6]?.trim().toUpperCase() === 'TRUE'
+                    });
+                }
+                const { error } = await supabaseClient.from('products').insert(items);
+                if (error) alert(error.message); else loadProducts();
+            };
+            reader.readAsText(file);
+        }
+
         function resetForm() {
-            document.querySelectorAll('input').forEach(input => input.value = "");
-            document.getElementById('p_name').focus();
+            document.getElementById('edit_id').value = '';
+            document.querySelectorAll('.input-custom').forEach(i => i.value = '');
+            document.getElementById('p_is_sell').checked = true;
+            document.getElementById('p_is_hpp').checked = true;
         }
     </script>
 </body>
