@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delta Lunox | Admin Dashboard 📊</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script> 
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #1e293b; }
+        .sidebar { transition: all 0.3s; width: 280px; background: #0f172a; }
+        .nav-link { transition: all 0.2s; color: #94a3b8; border-radius: 15px; }
+        .nav-link:hover, .nav-link.active { background: #1e293b; color: white; }
+        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 25px; }
+        .stat-card { border-radius: 24px; padding: 20px; border: 1px solid rgba(0,0,0,0.02); }
+    </style>
+</head>
+<body class="flex min-h-screen">
+
+    <aside class="sidebar fixed lg:static inset-y-0 left-0 z-50 flex flex-col p-6 overflow-y-auto">
+        <div class="flex items-center gap-3 mb-10 px-2">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40">
+                <i class="fas fa-gem text-white"></i>
+            </div>
+            <h2 class="text-white font-black text-xl tracking-tighter uppercase">Delta Lunox</h2>
+        </div>
+
+        <nav class="space-y-2 flex-grow">
+            <a href="dashboard.html" class="nav-link active flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
+                <i class="fas fa-th-large w-5"></i> Dashboard
+            </a>
+            <a href="admin-approval.html" class="nav-link flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
+                <i class="fas fa-check-circle w-5"></i> Approval
+                <span id="badge-pending" class="ml-auto bg-pink-600 text-[8px] text-white px-2 py-1 rounded-full hidden">0</span>
+            </a>
+            <a href="gudang-scan.html" class="nav-link flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
+                <i class="fas fa-exchange-alt w-5"></i> Transfer Stok
+            </a>
+            <a href="kasir.html" class="nav-link flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
+                <i class="fas fa-cash-register w-5"></i> Kasir POS
+            </a>
+            <div class="pt-4 pb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest px-4">Master Data</div>
+            <a href="products.html" class="nav-link flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
+                <i class="fas fa-box w-5"></i> Inventaris
+            </a>
+        </nav>
+
+        <div class="mt-auto pt-6 border-t border-slate-800 px-2">
+            <p class="text-[9px] font-bold text-slate-500 uppercase">Current User</p>
+            <p class="text-xs font-black text-white uppercase mt-1">Sys Admin</p>
+        </div>
+    </aside>
+
+    <main class="flex-grow p-4 lg:p-10">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-black tracking-tight">Executive Summary</h1>
+                <p class="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em]">Inventory Monitoring System</p>
+            </div>
+            <button onclick="loadDashboardData()" class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-slate-400 hover:text-blue-500">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <div class="stat-card bg-white shadow-sm">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Gudang Utama</p>
+                <h3 id="stat-gudang" class="text-2xl font-black">0</h3>
+            </div>
+            <div class="stat-card bg-white shadow-sm">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Stok KTV</p>
+                <h3 id="stat-ktv" class="text-2xl font-black text-blue-600">0</h3>
+            </div>
+            <div class="stat-card bg-white shadow-sm">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Stok SPA</p>
+                <h3 id="stat-spa" class="text-2xl font-black text-purple-600">0</h3>
+            </div>
+            <div class="stat-card bg-white shadow-sm">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Stok Cabana</p>
+                <h3 id="stat-cabana" class="text-2xl font-black text-orange-500">0</h3>
+            </div>
+            <div class="stat-card bg-white shadow-sm">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Stok Kitchen</p>
+                <h3 id="stat-kitchen" class="text-2xl font-black text-emerald-500">0</h3>
+            </div>
+        </div>
+
+        <div class="glass-card shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-white/50">
+                <h3 class="text-xs font-black uppercase tracking-widest">Detail Stok Seluruh Unit</h3>
+                <input type="text" id="search-product" oninput="filterTable()" placeholder="Cari Produk..." class="bg-slate-100 border-none rounded-xl px-4 py-2 text-xs font-bold outline-none">
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50/50">
+                        <tr>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">Produk</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">Gudang</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">KTV</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">SPA</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">Cabana</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-right">Kitchen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-table-body" class="divide-y divide-slate-50">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadDashboardData() {
+            const { data, error } = await supabaseClient
+                .from('products')
+                .select('*')
+                .order('name');
+
+            if (error) return console.error(error);
+
+            // Update Stats
+            const totalGudang = data.reduce((acc, p) => acc + (p.stok_gudang || 0), 0);
+            const totalKTV = data.reduce((acc, p) => acc + (p.stok_ktv || 0), 0);
+            const totalSPA = data.reduce((acc, p) => acc + (p.stok_spa || 0), 0);
+            const totalCabana = data.reduce((acc, p) => acc + (p.stok_cabana || 0), 0);
+            const totalKitchen = data.reduce((acc, p) => acc + (p.stok_kitchen || 0), 0);
+
+            document.getElementById('stat-gudang').innerText = totalGudang;
+            document.getElementById('stat-ktv').innerText = totalKTV;
+            document.getElementById('stat-spa').innerText = totalSPA;
+            document.getElementById('stat-cabana').innerText = totalCabana;
+            document.getElementById('stat-kitchen').innerText = totalKitchen;
+
+            // Render Table
+            const tbody = document.getElementById('product-table-body');
+            tbody.innerHTML = data.map(p => `
+                <tr class="hover:bg-blue-50/30 transition-colors">
+                    <td class="p-5">
+                        <p class="text-xs font-black uppercase">${p.name}</p>
+                        <p class="text-[8px] text-slate-400">#${p.id.slice(0,8)}</p>
+                    </td>
+                    <td class="p-5 text-xs font-bold">${p.stok_gudang || 0}</td>
+                    <td class="p-5 text-xs font-bold text-blue-600">${p.stok_ktv || 0}</td>
+                    <td class="p-5 text-xs font-bold text-purple-600">${p.stok_spa || 0}</td>
+                    <td class="p-5 text-xs font-bold text-orange-500">${p.stok_cabana || 0}</td>
+                    <td class="p-5 text-xs font-bold text-emerald-500 text-right">${p.stok_kitchen || 0}</td>
+                </tr>
+            `).join('');
+
+            checkPendingApprovals();
+        }
+
+        async function checkPendingApprovals() {
+            const { count } = await supabaseClient
+                .from('stock_transfers')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'pending');
+
+            const badge = document.getElementById('badge-pending');
+            if (count > 0) {
+                badge.innerText = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function filterTable() {
+            const q = document.getElementById('search-product').value.toLowerCase();
+            const rows = document.querySelectorAll('#product-table-body tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(q) ? '' : 'none';
+            });
+        }
+
+        // Auto Refresh every 30 seconds
+        setInterval(loadDashboardData, 30000);
+        loadDashboardData();
+    </script>
+</body>
+</html>
