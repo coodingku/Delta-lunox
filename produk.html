@@ -16,11 +16,10 @@
         .sidebar { transition: all 0.3s; width: 280px; background: #0f172a; flex-shrink: 0; }
         .nav-link { transition: all 0.2s; color: #94a3b8; border-radius: 15px; }
         .nav-link:hover, .nav-link.active { background: #1e293b; color: white; }
-        
+        .glass-card { background: white; border-radius: 25px; border: 1px solid rgba(0,0,0,0.05); }
         .modal { transition: opacity 0.25s ease; z-index: 100; }
         .input-custom { background: #f8fafc; border: 2px solid #e2e8f0; transition: all 0.3s ease; border-radius: 12px; }
         .input-custom:focus { border-color: #3b82f6; outline: none; background: white; }
-        .glass-card { background: white; border-radius: 25px; border: 1px solid rgba(0,0,0,0.05); }
     </style>
 </head>
 <body class="flex min-h-screen">
@@ -30,11 +29,14 @@
             <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40">
                 <i class="fas fa-gem text-white"></i>
             </div>
-            <h2 class="text-white font-black text-xl tracking-tighter uppercase text-left">Delta Lunox</h2>
+            <h2 class="text-white font-black text-xl tracking-tighter uppercase">Delta Lunox</h2>
         </div>
         <nav class="space-y-2 flex-grow">
             <a href="dashboard.html" class="nav-link flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
                 <i class="fas fa-th-large w-5"></i> Dashboard
+            </a>
+            <a href="admin-approval.html" class="nav-link flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
+                <i class="fas fa-check-circle w-5"></i> Approval
             </a>
             <a href="products.html" class="nav-link active flex items-center gap-4 p-4 text-xs font-bold uppercase tracking-widest">
                 <i class="fas fa-box w-5"></i> Inventaris
@@ -43,15 +45,34 @@
     </aside>
 
     <main class="flex-grow p-6 lg:p-10">
-        <header class="flex justify-between items-center mb-8">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-                <h1 class="text-2xl lg:text-3xl font-black tracking-tight uppercase">Master Produk</h1>
-                <p class="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em]">Manajemen Harga & Stok</p>
+                <h1 class="text-2xl lg:text-3xl font-black tracking-tight uppercase text-slate-800">Manajemen Produk</h1>
+                <p class="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em]">Input & Update Database</p>
             </div>
-            <button onclick="toggleModal(true)" class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-blue-700 transition">
+            <button onclick="toggleModal(true)" class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition">
                 <i class="fas fa-plus mr-2"></i> Tambah Produk
             </button>
         </header>
+
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div class="flex gap-2">
+                <button onclick="exportToCSV()" class="bg-emerald-500/10 text-emerald-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition">
+                    <i class="fas fa-file-export mr-2"></i> Export
+                </button>
+                <label class="bg-amber-500/10 text-amber-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-white transition cursor-pointer">
+                    <i class="fas fa-file-import mr-2"></i> Import CSV
+                    <input type="file" id="importFile" accept=".csv" class="hidden" onchange="importCSV(this)">
+                </label>
+                <button onclick="downloadTemplate()" class="bg-slate-100 text-slate-500 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 transition">
+                    <i class="fas fa-download mr-2"></i> Template
+                </button>
+            </div>
+            <div class="relative w-full md:w-64">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                <input type="text" id="searchBox" onkeyup="filterTable()" placeholder="Cari Nama / SKU..." class="w-full bg-white border-none rounded-xl py-3 pl-10 pr-4 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
 
         <div class="glass-card overflow-hidden shadow-xl shadow-slate-200/50">
             <div class="overflow-x-auto">
@@ -60,7 +81,7 @@
                         <tr>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400">Info Produk</th>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-center">Stok</th>
-                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">HPP</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400">Harga Beli</th>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400">Harga Jual</th>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-right">Aksi</th>
                         </tr>
@@ -76,35 +97,35 @@
         <div class="absolute w-full h-full bg-slate-900/60 backdrop-blur-sm" onclick="toggleModal(false)"></div>
         <div class="bg-white w-full max-w-md mx-auto rounded-3xl shadow-2xl z-50 overflow-hidden relative">
             <div class="p-8">
-                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tight mb-6">Produk Baru</h3>
+                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tight mb-6">Tambah Produk</h3>
                 <input type="hidden" id="edit_id">
                 <div class="space-y-4">
                     <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left">Nama Produk</label>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Nama Barang</label>
                         <input type="text" id="p_name" class="w-full input-custom p-3 text-sm font-bold">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left">QR Code</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">QR Code</label>
                             <input type="text" id="p_qr" class="w-full input-custom p-3 text-sm font-bold text-pink-600">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left">Stok</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Stok Awal</label>
                             <input type="number" id="p_stock" class="w-full input-custom p-3 text-sm font-bold">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left">HPP (Beli)</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Harga Beli (HPP)</label>
                             <input type="number" id="p_cost" class="w-full input-custom p-3 text-sm font-bold">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left">Harga Jual</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Harga Jual</label>
                             <input type="number" id="p_price" class="w-full input-custom p-3 text-sm font-bold text-blue-600">
                         </div>
                     </div>
-                    <button onclick="saveProduct()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest mt-4 shadow-lg hover:bg-blue-600 transition-all">
-                        Simpan Produk
+                    <button onclick="saveProduct()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest mt-4 hover:bg-blue-600 transition-all shadow-lg">
+                        Simpan ke Database
                     </button>
                 </div>
             </div>
@@ -128,17 +149,17 @@
             tbody.innerHTML = data.map(p => `
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="p-5">
-                        <div class="font-black text-xs uppercase">${p.name}</div>
-                        <div class="text-[9px] text-slate-400 font-bold tracking-tight">QR: ${p.qr_code}</div>
+                        <div class="font-black text-xs uppercase text-slate-800">${p.name}</div>
+                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">QR: ${p.qr_code}</div>
                     </td>
                     <td class="p-5 text-center">
-                        <span class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black">${p.stock || 0}</span>
+                        <span class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black text-slate-800">${p.stock || 0}</span>
                     </td>
                     <td class="p-5 text-xs font-bold text-slate-500">Rp ${Number(p.cost_price || 0).toLocaleString()}</td>
                     <td class="p-5 text-xs font-black text-blue-600">Rp ${Number(p.price || 0).toLocaleString()}</td>
                     <td class="p-5 text-right space-x-1">
-                        <button onclick="editProduct('${p.id}')" class="text-blue-500 p-2"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteProduct('${p.id}', '${p.name}')" class="text-red-400 p-2"><i class="fas fa-trash"></i></button>
+                        <button onclick="editProduct('${p.id}')" class="w-8 h-8 rounded-lg text-blue-500 hover:bg-blue-50 transition"><i class="fas fa-edit text-xs"></i></button>
+                        <button onclick="deleteProduct('${p.id}', '${p.name}')" class="w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition"><i class="fas fa-trash text-xs"></i></button>
                     </td>
                 </tr>
             `).join('');
@@ -146,7 +167,7 @@
 
         function toggleModal(show, isEdit = false) {
             const modal = document.getElementById('modalProduct');
-            document.getElementById('modalTitle').innerText = isEdit ? 'Update Produk' : 'Produk Baru';
+            document.getElementById('modalTitle').innerText = isEdit ? 'Update Produk' : 'Tambah Produk Baru';
             if (!show) resetForm();
             modal.style.opacity = show ? '1' : '0';
             modal.style.pointerEvents = show ? 'auto' : 'none';
@@ -168,11 +189,8 @@
                 ? await supabaseClient.from('products').update(payload).eq('id', id)
                 : await supabaseClient.from('products').insert([payload]);
 
-            if (error) alert(error.message);
-            else {
-                toggleModal(false);
-                loadProducts();
-            }
+            if (error) alert("Gagal Simpan: " + error.message);
+            else { toggleModal(false); loadProducts(); }
         }
 
         function editProduct(id) {
@@ -191,6 +209,55 @@
                 await supabaseClient.from('products').delete().eq('id', id);
                 loadProducts();
             }
+        }
+
+        function filterTable() {
+            const q = document.getElementById('searchBox').value.toLowerCase();
+            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(q) || (p.qr_code && p.qr_code.toLowerCase().includes(q)));
+            renderTable(filtered);
+        }
+
+        // --- Fitur Export/Import ---
+        function downloadTemplate() {
+            const headers = ["name", "qr_code", "stock", "cost_price", "price"];
+            const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\nProduk Contoh,QR-123,10,5000,10000";
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent); link.download = "template_produk_delta.csv";
+            link.click();
+        }
+
+        function exportToCSV() {
+            const headers = ["Name", "QR_Code", "Stock", "Cost_Price", "Price"];
+            const rows = allProducts.map(p => [p.name, p.qr_code, p.stock, p.cost_price, p.price].join(","));
+            const csv = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
+            const link = document.createElement("a");
+            link.href = encodeURI(csv); link.download = "data_produk.csv";
+            link.click();
+        }
+
+        async function importCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const lines = e.target.result.split("\n");
+                const items = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const col = lines[i].split(",");
+                    if (col.length < 2) continue;
+                    items.push({
+                        name: col[0].trim(), 
+                        qr_code: col[1].trim(), 
+                        stock: parseInt(col[2]) || 0,
+                        cost_price: parseFloat(col[3]) || 0, 
+                        price: parseFloat(col[4]) || 0,
+                        is_selling: true, is_hpp_active: true
+                    });
+                }
+                const { error } = await supabaseClient.from('products').insert(items);
+                if (error) alert(error.message); else { alert("Import Berhasil!"); loadProducts(); }
+            };
+            reader.readAsText(file);
         }
 
         function resetForm() {
