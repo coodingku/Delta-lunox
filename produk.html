@@ -83,11 +83,11 @@
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-center">Stok</th>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400">Harga Beli</th>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400">Harga Jual</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-center">Status</th>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-right">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="productTable" class="divide-y divide-slate-50 text-slate-700">
-                        </tbody>
+                    <tbody id="productTable" class="divide-y divide-slate-50 text-slate-700"></tbody>
                 </table>
             </div>
         </div>
@@ -97,7 +97,7 @@
         <div class="absolute w-full h-full bg-slate-900/60 backdrop-blur-sm" onclick="toggleModal(false)"></div>
         <div class="bg-white w-full max-w-md mx-auto rounded-3xl shadow-2xl z-50 overflow-hidden relative">
             <div class="p-8">
-                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tight mb-6">Tambah Produk</h3>
+                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tight mb-6 text-slate-800">Tambah Produk</h3>
                 <input type="hidden" id="edit_id">
                 <div class="space-y-4">
                     <div>
@@ -124,7 +124,17 @@
                             <input type="number" id="p_price" class="w-full input-custom p-3 text-sm font-bold text-blue-600">
                         </div>
                     </div>
-                    <button onclick="saveProduct()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest mt-4 hover:bg-blue-600 transition-all shadow-lg">
+                    <div class="flex gap-6 py-2 px-1">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="p_is_selling" checked class="w-4 h-4 rounded text-emerald-500 border-slate-300">
+                            <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">Siap Jual</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="p_is_hpp" checked class="w-4 h-4 rounded text-blue-500 border-slate-300">
+                            <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">Hitung HPP</span>
+                        </label>
+                    </div>
+                    <button onclick="saveProduct()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest mt-2 hover:bg-blue-600 transition-all shadow-lg">
                         Simpan ke Database
                     </button>
                 </div>
@@ -157,12 +167,27 @@
                     </td>
                     <td class="p-5 text-xs font-bold text-slate-500">Rp ${Number(p.cost_price || 0).toLocaleString()}</td>
                     <td class="p-5 text-xs font-black text-blue-600">Rp ${Number(p.price || 0).toLocaleString()}</td>
+                    <td class="p-5 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button onclick="updateToggle('${p.id}', 'is_selling', ${p.is_selling})" class="w-7 h-7 rounded-full ${p.is_selling ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'}">
+                                <i class="fas fa-shopping-cart text-[9px]"></i>
+                            </button>
+                            <button onclick="updateToggle('${p.id}', 'is_hpp_active', ${p.is_hpp_active})" class="w-7 h-7 rounded-full ${p.is_hpp_active ? 'bg-blue-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'}">
+                                <i class="fas fa-calculator text-[9px]"></i>
+                            </button>
+                        </div>
+                    </td>
                     <td class="p-5 text-right space-x-1">
                         <button onclick="editProduct('${p.id}')" class="w-8 h-8 rounded-lg text-blue-500 hover:bg-blue-50 transition"><i class="fas fa-edit text-xs"></i></button>
                         <button onclick="deleteProduct('${p.id}', '${p.name}')" class="w-8 h-8 rounded-lg text-red-400 hover:bg-red-50 transition"><i class="fas fa-trash text-xs"></i></button>
                     </td>
                 </tr>
             `).join('');
+        }
+
+        async function updateToggle(id, field, currentVal) {
+            const { error } = await supabaseClient.from('products').update({ [field]: !currentVal }).eq('id', id);
+            if (error) alert(error.message); else loadProducts();
         }
 
         function toggleModal(show, isEdit = false) {
@@ -181,8 +206,8 @@
                 stock: parseInt(document.getElementById('p_stock').value) || 0,
                 cost_price: parseFloat(document.getElementById('p_cost').value) || 0,
                 price: parseFloat(document.getElementById('p_price').value) || 0,
-                is_selling: true,
-                is_hpp_active: true
+                is_selling: document.getElementById('p_is_selling').checked,
+                is_hpp_active: document.getElementById('p_is_hpp').checked
             };
 
             const { error } = id 
@@ -201,6 +226,8 @@
             document.getElementById('p_stock').value = p.stock || 0;
             document.getElementById('p_cost').value = p.cost_price || 0;
             document.getElementById('p_price').value = p.price || 0;
+            document.getElementById('p_is_selling').checked = p.is_selling;
+            document.getElementById('p_is_hpp').checked = p.is_hpp_active;
             toggleModal(true, true);
         }
 
@@ -217,21 +244,22 @@
             renderTable(filtered);
         }
 
-        // --- Fitur Export/Import ---
+        // --- EXPORT / IMPORT LOGIC ---
         function downloadTemplate() {
-            const headers = ["name", "qr_code", "stock", "cost_price", "price"];
-            const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\nProduk Contoh,QR-123,10,5000,10000";
+            const headers = ["name", "qr_code", "stock", "cost_price", "price", "is_selling", "is_hpp_active"];
+            const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + 
+                "\nProduk Contoh,QR-123,10,5000,10000,TRUE,TRUE";
             const link = document.createElement("a");
             link.href = encodeURI(csvContent); link.download = "template_produk_delta.csv";
             link.click();
         }
 
         function exportToCSV() {
-            const headers = ["Name", "QR_Code", "Stock", "Cost_Price", "Price"];
-            const rows = allProducts.map(p => [p.name, p.qr_code, p.stock, p.cost_price, p.price].join(","));
+            const headers = ["name", "qr_code", "stock", "cost_price", "price", "is_selling", "is_hpp_active"];
+            const rows = allProducts.map(p => [p.name, p.qr_code, p.stock, p.cost_price, p.price, p.is_selling, p.is_hpp_active].join(","));
             const csv = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
             const link = document.createElement("a");
-            link.href = encodeURI(csv); link.download = "data_produk.csv";
+            link.href = encodeURI(csv); link.download = "data_produk_delta.csv";
             link.click();
         }
 
@@ -246,12 +274,11 @@
                     const col = lines[i].split(",");
                     if (col.length < 2) continue;
                     items.push({
-                        name: col[0].trim(), 
-                        qr_code: col[1].trim(), 
-                        stock: parseInt(col[2]) || 0,
-                        cost_price: parseFloat(col[3]) || 0, 
+                        name: col[0].trim(), qr_code: col[1].trim(), 
+                        stock: parseInt(col[2]) || 0, cost_price: parseFloat(col[3]) || 0, 
                         price: parseFloat(col[4]) || 0,
-                        is_selling: true, is_hpp_active: true
+                        is_selling: (col[5]?.trim().toUpperCase() === 'TRUE'),
+                        is_hpp_active: (col[6]?.trim().toUpperCase() === 'TRUE')
                     });
                 }
                 const { error } = await supabaseClient.from('products').insert(items);
@@ -262,6 +289,8 @@
 
         function resetForm() {
             document.getElementById('edit_id').value = '';
+            document.getElementById('p_is_selling').checked = true;
+            document.getElementById('p_is_hpp').checked = true;
             document.querySelectorAll('.input-custom').forEach(i => i.value = '');
         }
     </script>
