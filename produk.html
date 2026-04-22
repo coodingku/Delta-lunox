@@ -48,10 +48,10 @@
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
                 <h1 class="text-2xl lg:text-3xl font-black tracking-tight uppercase text-slate-800">Manajemen Produk</h1>
-                <p class="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em]">Input & Update Database</p>
+                <p class="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em]">Pusat Gudang Utama</p>
             </div>
             <button onclick="toggleModal(true)" class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition">
-                <i class="fas fa-plus mr-2"></i> Tambah Produk
+                <i class="fas fa-plus mr-2"></i> Tambah Produk Baru
             </button>
         </header>
 
@@ -64,13 +64,10 @@
                     <i class="fas fa-file-import mr-2"></i> Import CSV
                     <input type="file" id="importFile" accept=".csv" class="hidden" onchange="importCSV(this)">
                 </label>
-                <button onclick="downloadTemplate()" class="bg-slate-100 text-slate-500 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 transition">
-                    <i class="fas fa-download mr-2"></i> Template
-                </button>
             </div>
-            <div class="relative w-full md:w-64">
+            <div class="relative w-full md:w-80">
                 <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
-                <input type="text" id="searchBox" onkeyup="filterTable()" placeholder="Cari Nama / KODE QR..." class="w-full bg-white border-none rounded-xl py-3 pl-10 pr-4 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="searchBox" onkeyup="filterTable()" placeholder="Scan QR atau Cari Nama Produk..." class="w-full bg-white border-none rounded-xl py-3 pl-10 pr-4 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
@@ -80,7 +77,7 @@
                     <thead class="bg-slate-50 border-b border-slate-100">
                         <tr>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400">Info Produk</th>
-                            <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-center">Stok</th>
+                            <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-center">Stok Gudang</th>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400">Harga Beli</th>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400">Harga Jual</th>
                             <th class="p-5 text-[10px] font-black uppercase text-slate-400 text-center">Status</th>
@@ -97,30 +94,30 @@
         <div class="absolute w-full h-full bg-slate-900/60 backdrop-blur-sm" onclick="toggleModal(false)"></div>
         <div class="bg-white w-full max-w-md mx-auto rounded-3xl shadow-2xl z-50 overflow-hidden relative">
             <div class="p-8">
-                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tight mb-6 text-slate-800 text-center">Form Produk</h3>
+                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tight mb-6 text-slate-800 text-center text-blue-600">Form Master Produk</h3>
                 <input type="hidden" id="edit_id">
                 <div class="space-y-4">
                     <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Nama Barang</label>
-                        <input type="text" id="p_name" class="w-full input-custom p-3 text-sm font-bold">
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1 text-left">Nama Barang</label>
+                        <input type="text" id="p_name" class="w-full input-custom p-3 text-sm font-bold" placeholder="Masukkan nama produk">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1 italic text-pink-500">Scan QR Code</label>
-                            <input type="text" id="p_qr" class="w-full input-custom p-3 text-sm font-bold text-pink-600 border-pink-100">
+                            <label class="text-[10px] font-black text-pink-500 uppercase block mb-1 ml-1 text-left italic">QR Code (Scan)</label>
+                            <input type="text" id="p_qr" class="w-full input-custom p-3 text-sm font-bold text-pink-600 border-pink-100 uppercase" placeholder="SCAN DISINI">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Stok</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1 text-left">Stok Awal (Gudang)</label>
                             <input type="number" id="p_stock" class="w-full input-custom p-3 text-sm font-bold">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Harga Beli</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1 text-left">Harga Beli</label>
                             <input type="number" id="p_cost" class="w-full input-custom p-3 text-sm font-bold">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1 text-blue-500">Harga Jual</label>
+                            <label class="text-[10px] font-black text-blue-500 uppercase block mb-1 ml-1 text-left">Harga Jual</label>
                             <input type="number" id="p_price" class="w-full input-custom p-3 text-sm font-bold text-blue-600">
                         </div>
                     </div>
@@ -135,7 +132,7 @@
                         </label>
                     </div>
                     <button onclick="saveProduct()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest mt-2 hover:bg-blue-600 transition-all shadow-lg">
-                        Simpan ke Database
+                        Simpan Data Ke Gudang
                     </button>
                 </div>
             </div>
@@ -160,10 +157,10 @@
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="p-5">
                         <div class="font-black text-xs uppercase text-slate-800">${p.name}</div>
-                        <div class="text-[9px] font-bold uppercase text-pink-500 tracking-tighter"><i class="fas fa-qrcode mr-1"></i>${p.qr_code || 'TIDAK ADA QR'}</div>
+                        <div class="text-[9px] font-bold uppercase text-pink-500 tracking-tighter"><i class="fas fa-qrcode mr-1"></i>${p.qr_code || 'BELUM ADA QR'}</div>
                     </td>
                     <td class="p-5 text-center">
-                        <span class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black text-slate-800">${p.stock || 0}</span>
+                        <span class="bg-blue-50 px-3 py-1 rounded-lg text-xs font-black text-blue-600">${p.stok_gudang || 0}</span>
                     </td>
                     <td class="p-5 text-xs font-bold text-slate-500">Rp ${Number(p.cost_price || 0).toLocaleString()}</td>
                     <td class="p-5 text-xs font-black text-blue-600">Rp ${Number(p.price || 0).toLocaleString()}</td>
@@ -196,14 +193,20 @@
             if (!show) resetForm();
             modal.style.opacity = show ? '1' : '0';
             modal.style.pointerEvents = show ? 'auto' : 'none';
+            if (show) setTimeout(() => document.getElementById('p_qr').focus(), 300); // Auto focus ke QR saat buka
         }
 
         async function saveProduct() {
             const id = document.getElementById('edit_id').value;
+            const qrValue = document.getElementById('p_qr').value;
+            const stockInput = parseInt(document.getElementById('p_stock').value) || 0;
+
             const payload = {
                 name: document.getElementById('p_name').value,
-                qr_code: document.getElementById('p_qr').value,
-                stock: parseInt(document.getElementById('p_stock').value) || 0,
+                qr_code: qrValue,
+                sku: qrValue, // Otomatis mengisi SKU dengan QR
+                stok_gudang: stockInput, // Target Utama: Gudang
+                stock: stockInput, // Sinkronisasi ke total stok
                 cost_price: parseFloat(document.getElementById('p_cost').value) || 0,
                 price: parseFloat(document.getElementById('p_price').value) || 0,
                 is_selling: document.getElementById('p_is_selling').checked,
@@ -225,7 +228,7 @@
             document.getElementById('edit_id').value = p.id;
             document.getElementById('p_name').value = p.name;
             document.getElementById('p_qr').value = p.qr_code;
-            document.getElementById('p_stock').value = p.stock || 0;
+            document.getElementById('p_stock').value = p.stok_gudang || 0;
             document.getElementById('p_cost').value = p.cost_price || 0;
             document.getElementById('p_price').value = p.price || 0;
             document.getElementById('p_is_selling').checked = p.is_selling;
@@ -242,25 +245,19 @@
 
         function filterTable() {
             const q = document.getElementById('searchBox').value.toLowerCase();
-            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(q) || (p.qr_code && p.qr_code.toLowerCase().includes(q)));
+            const filtered = allProducts.filter(p => 
+                p.name.toLowerCase().includes(q) || 
+                (p.qr_code && p.qr_code.toLowerCase().includes(q))
+            );
             renderTable(filtered);
         }
 
-        function downloadTemplate() {
-            const headers = ["name", "qr_code", "stock", "cost_price", "price", "is_selling", "is_hpp_active"];
-            const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + 
-                "\nNama Produk,KODE-QR-123,10,5000,10000,TRUE,TRUE";
-            const link = document.createElement("a");
-            link.href = encodeURI(csvContent); link.download = "template_produk_qr.csv";
-            link.click();
-        }
-
         function exportToCSV() {
-            const headers = ["name", "qr_code", "stock", "cost_price", "price", "is_selling", "is_hpp_active"];
-            const rows = allProducts.map(p => [p.name, p.qr_code, p.stock, p.cost_price, p.price, p.is_selling, p.is_hpp_active].join(","));
+            const headers = ["name", "qr_code", "stok_gudang", "cost_price", "price", "is_selling", "is_hpp_active"];
+            const rows = allProducts.map(p => [p.name, p.qr_code, p.stok_gudang, p.cost_price, p.price, p.is_selling, p.is_hpp_active].join(","));
             const csv = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
             const link = document.createElement("a");
-            link.href = encodeURI(csv); link.download = "export_produk_delta.csv";
+            link.href = encodeURI(csv); link.download = "master_produk_delta.csv";
             link.click();
         }
 
@@ -274,16 +271,22 @@
                 for (let i = 1; i < lines.length; i++) {
                     const col = lines[i].split(",");
                     if (col.length < 2) continue;
+                    const stockVal = parseInt(col[2]) || 0;
                     items.push({
-                        name: col[0].trim(), qr_code: col[1].trim(), 
-                        stock: parseInt(col[2]) || 0, cost_price: parseFloat(col[3]) || 0, 
+                        name: col[0].trim(), 
+                        qr_code: col[1].trim(), 
+                        sku: col[1].trim(), // Otomatis
+                        stok_gudang: stockVal, // Target Gudang
+                        stock: stockVal,
+                        cost_price: parseFloat(col[3]) || 0, 
                         price: parseFloat(col[4]) || 0,
                         is_selling: (col[5]?.trim().toUpperCase() === 'TRUE'),
                         is_hpp_active: (col[6]?.trim().toUpperCase() === 'TRUE')
                     });
                 }
                 const { error } = await supabaseClient.from('products').insert(items);
-                if (error) alert("Error Import: " + error.message); else { alert("Import Berhasil!"); loadProducts(); }
+                if (error) alert("Error Import: " + error.message); 
+                else { alert("Import Berhasil ke Gudang Utama!"); loadProducts(); }
             };
             reader.readAsText(file);
         }
