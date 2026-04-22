@@ -64,6 +64,9 @@
                     <i class="fas fa-file-import mr-2"></i> Import CSV
                     <input type="file" id="importFile" accept=".csv" class="hidden" onchange="importCSV(this)">
                 </label>
+                <button onclick="downloadTemplate()" class="bg-slate-100 text-slate-500 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 transition">
+                    <i class="fas fa-download mr-2"></i> Template
+                </button>
             </div>
             <div class="relative w-full md:w-80">
                 <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
@@ -99,12 +102,12 @@
                 <div class="space-y-4">
                     <div>
                         <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1 text-left">Nama Barang</label>
-                        <input type="text" id="p_name" class="w-full input-custom p-3 text-sm font-bold" placeholder="Masukkan nama produk">
+                        <input type="text" id="p_name" class="w-full input-custom p-3 text-sm font-bold" placeholder="Contoh: Coca Cola 250ml">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="text-[10px] font-black text-pink-500 uppercase block mb-1 ml-1 text-left italic">QR Code (Scan)</label>
-                            <input type="text" id="p_qr" class="w-full input-custom p-3 text-sm font-bold text-pink-600 border-pink-100 uppercase" placeholder="SCAN DISINI">
+                            <input type="text" id="p_qr" class="w-full input-custom p-3 text-sm font-bold text-pink-600 border-pink-100 uppercase" placeholder="SCAN QR DISINI">
                         </div>
                         <div>
                             <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 ml-1 text-left">Stok Awal (Gudang)</label>
@@ -193,7 +196,7 @@
             if (!show) resetForm();
             modal.style.opacity = show ? '1' : '0';
             modal.style.pointerEvents = show ? 'auto' : 'none';
-            if (show) setTimeout(() => document.getElementById('p_qr').focus(), 300); // Auto focus ke QR saat buka
+            if (show) setTimeout(() => document.getElementById('p_qr').focus(), 300);
         }
 
         async function saveProduct() {
@@ -204,9 +207,9 @@
             const payload = {
                 name: document.getElementById('p_name').value,
                 qr_code: qrValue,
-                sku: qrValue, // Otomatis mengisi SKU dengan QR
-                stok_gudang: stockInput, // Target Utama: Gudang
-                stock: stockInput, // Sinkronisasi ke total stok
+                sku: qrValue,
+                stok_gudang: stockInput,
+                stock: stockInput,
                 cost_price: parseFloat(document.getElementById('p_cost').value) || 0,
                 price: parseFloat(document.getElementById('p_price').value) || 0,
                 is_selling: document.getElementById('p_is_selling').checked,
@@ -252,6 +255,17 @@
             renderTable(filtered);
         }
 
+        // FUNGSI DOWNLOAD TEMPLATE CSV
+        function downloadTemplate() {
+            const headers = ["name", "qr_code", "stok_gudang", "cost_price", "price", "is_selling", "is_hpp_active"];
+            const exampleData = "Indomie Goreng,8998866200234,100,2800,3500,TRUE,TRUE";
+            const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + exampleData;
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = "template_import_gudang.csv";
+            link.click();
+        }
+
         function exportToCSV() {
             const headers = ["name", "qr_code", "stok_gudang", "cost_price", "price", "is_selling", "is_hpp_active"];
             const rows = allProducts.map(p => [p.name, p.qr_code, p.stok_gudang, p.cost_price, p.price, p.is_selling, p.is_hpp_active].join(","));
@@ -275,8 +289,8 @@
                     items.push({
                         name: col[0].trim(), 
                         qr_code: col[1].trim(), 
-                        sku: col[1].trim(), // Otomatis
-                        stok_gudang: stockVal, // Target Gudang
+                        sku: col[1].trim(), 
+                        stok_gudang: stockVal, 
                         stock: stockVal,
                         cost_price: parseFloat(col[3]) || 0, 
                         price: parseFloat(col[4]) || 0,
