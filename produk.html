@@ -70,7 +70,7 @@
             </div>
             <div class="relative w-full md:w-64">
                 <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
-                <input type="text" id="searchBox" onkeyup="filterTable()" placeholder="Cari Nama / SKU..." class="w-full bg-white border-none rounded-xl py-3 pl-10 pr-4 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="searchBox" onkeyup="filterTable()" placeholder="Cari Nama / KODE QR..." class="w-full bg-white border-none rounded-xl py-3 pl-10 pr-4 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
@@ -97,7 +97,7 @@
         <div class="absolute w-full h-full bg-slate-900/60 backdrop-blur-sm" onclick="toggleModal(false)"></div>
         <div class="bg-white w-full max-w-md mx-auto rounded-3xl shadow-2xl z-50 overflow-hidden relative">
             <div class="p-8">
-                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tight mb-6 text-slate-800">Tambah Produk</h3>
+                <h3 id="modalTitle" class="text-xl font-black uppercase tracking-tight mb-6 text-slate-800 text-center">Form Produk</h3>
                 <input type="hidden" id="edit_id">
                 <div class="space-y-4">
                     <div>
@@ -106,32 +106,32 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">QR Code</label>
-                            <input type="text" id="p_qr" class="w-full input-custom p-3 text-sm font-bold text-pink-600">
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1 italic text-pink-500">Scan QR Code</label>
+                            <input type="text" id="p_qr" class="w-full input-custom p-3 text-sm font-bold text-pink-600 border-pink-100">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Stok Awal</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Stok</label>
                             <input type="number" id="p_stock" class="w-full input-custom p-3 text-sm font-bold">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Harga Beli (HPP)</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Harga Beli</label>
                             <input type="number" id="p_cost" class="w-full input-custom p-3 text-sm font-bold">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1">Harga Jual</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1 text-left ml-1 text-blue-500">Harga Jual</label>
                             <input type="number" id="p_price" class="w-full input-custom p-3 text-sm font-bold text-blue-600">
                         </div>
                     </div>
-                    <div class="flex gap-6 py-2 px-1">
+                    <div class="flex justify-around bg-slate-50 p-3 rounded-2xl">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" id="p_is_selling" checked class="w-4 h-4 rounded text-emerald-500 border-slate-300">
-                            <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">Siap Jual</span>
+                            <span class="text-[9px] font-black uppercase text-slate-500">Siap Jual</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" id="p_is_hpp" checked class="w-4 h-4 rounded text-blue-500 border-slate-300">
-                            <span class="text-[10px] font-black uppercase text-slate-500 tracking-wider">Hitung HPP</span>
+                            <span class="text-[9px] font-black uppercase text-slate-500">Hitung HPP</span>
                         </label>
                     </div>
                     <button onclick="saveProduct()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest mt-2 hover:bg-blue-600 transition-all shadow-lg">
@@ -160,7 +160,7 @@
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="p-5">
                         <div class="font-black text-xs uppercase text-slate-800">${p.name}</div>
-                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">QR: ${p.qr_code}</div>
+                        <div class="text-[9px] font-bold uppercase text-pink-500 tracking-tighter"><i class="fas fa-qrcode mr-1"></i>${p.qr_code || 'TIDAK ADA QR'}</div>
                     </td>
                     <td class="p-5 text-center">
                         <span class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black text-slate-800">${p.stock || 0}</span>
@@ -169,10 +169,10 @@
                     <td class="p-5 text-xs font-black text-blue-600">Rp ${Number(p.price || 0).toLocaleString()}</td>
                     <td class="p-5 text-center">
                         <div class="flex justify-center gap-2">
-                            <button onclick="updateToggle('${p.id}', 'is_selling', ${p.is_selling})" class="w-7 h-7 rounded-full ${p.is_selling ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'}">
+                            <button onclick="updateToggle('${p.id}', 'is_selling', ${p.is_selling})" class="w-7 h-7 rounded-full ${p.is_selling ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'}" title="Status Jual">
                                 <i class="fas fa-shopping-cart text-[9px]"></i>
                             </button>
-                            <button onclick="updateToggle('${p.id}', 'is_hpp_active', ${p.is_hpp_active})" class="w-7 h-7 rounded-full ${p.is_hpp_active ? 'bg-blue-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'}">
+                            <button onclick="updateToggle('${p.id}', 'is_hpp_active', ${p.is_hpp_active})" class="w-7 h-7 rounded-full ${p.is_hpp_active ? 'bg-blue-500 text-white shadow-lg' : 'bg-slate-100 text-slate-300'}" title="Status HPP">
                                 <i class="fas fa-calculator text-[9px]"></i>
                             </button>
                         </div>
@@ -210,6 +210,8 @@
                 is_hpp_active: document.getElementById('p_is_hpp').checked
             };
 
+            if(!payload.name || !payload.qr_code) return alert("Nama dan QR Code wajib diisi!");
+
             const { error } = id 
                 ? await supabaseClient.from('products').update(payload).eq('id', id)
                 : await supabaseClient.from('products').insert([payload]);
@@ -244,13 +246,12 @@
             renderTable(filtered);
         }
 
-        // --- EXPORT / IMPORT LOGIC ---
         function downloadTemplate() {
             const headers = ["name", "qr_code", "stock", "cost_price", "price", "is_selling", "is_hpp_active"];
             const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + 
-                "\nProduk Contoh,QR-123,10,5000,10000,TRUE,TRUE";
+                "\nNama Produk,KODE-QR-123,10,5000,10000,TRUE,TRUE";
             const link = document.createElement("a");
-            link.href = encodeURI(csvContent); link.download = "template_produk_delta.csv";
+            link.href = encodeURI(csvContent); link.download = "template_produk_qr.csv";
             link.click();
         }
 
@@ -259,7 +260,7 @@
             const rows = allProducts.map(p => [p.name, p.qr_code, p.stock, p.cost_price, p.price, p.is_selling, p.is_hpp_active].join(","));
             const csv = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
             const link = document.createElement("a");
-            link.href = encodeURI(csv); link.download = "data_produk_delta.csv";
+            link.href = encodeURI(csv); link.download = "export_produk_delta.csv";
             link.click();
         }
 
@@ -282,7 +283,7 @@
                     });
                 }
                 const { error } = await supabaseClient.from('products').insert(items);
-                if (error) alert(error.message); else { alert("Import Berhasil!"); loadProducts(); }
+                if (error) alert("Error Import: " + error.message); else { alert("Import Berhasil!"); loadProducts(); }
             };
             reader.readAsText(file);
         }
