@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Master Stok & Produk | Delta Lunox</title>
+    <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -12,7 +13,6 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
         .btn-action { transition: all 0.2s; }
         .btn-action:hover { transform: translateY(-1px); }
-        tr:nth-child(even) { background-color: #fdfdfd; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -22,23 +22,15 @@
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
             <div>
                 <h1 class="text-3xl font-black text-slate-900 tracking-tighter uppercase">Master Data Produk</h1>
-                <p class="text-slate-500 font-medium">Manajemen inventaris, import/export, dan kendali stok antar outlet.</p>
+                <p class="text-slate-500 font-medium">Manajemen inventaris, import/export, dan kendali stok.</p>
             </div>
             
             <div class="flex flex-wrap gap-2">
-                <button onclick="downloadTemplate()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold btn-action shadow-sm">
-                    📥 TEMPLATE IMPORT
-                </button>
-                <button onclick="document.getElementById('importFile').click()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold btn-action shadow-sm">
-                    📤 IMPORT EXCEL
-                </button>
+                <button onclick="downloadTemplate()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold btn-action shadow-sm">📥 TEMPLATE</button>
+                <button onclick="document.getElementById('importFile').click()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold btn-action shadow-sm">📤 IMPORT</button>
                 <input type="file" id="importFile" class="hidden" accept=".xlsx, .xls" onchange="importExcel(event)">
-                <button onclick="exportToExcel()" class="bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold btn-action shadow-lg shadow-emerald-100">
-                    📊 EXPORT DATA
-                </button>
-                <button onclick="openModal()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold btn-action shadow-lg shadow-blue-100">
-                    ＋ PRODUK BARU
-                </button>
+                <button onclick="exportToExcel()" class="bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold btn-action shadow-lg shadow-emerald-100">📊 EXPORT</button>
+                <button onclick="openModal()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold btn-action shadow-lg shadow-blue-100">＋ PRODUK BARU</button>
             </div>
         </div>
 
@@ -48,7 +40,7 @@
                 <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari nama atau kode..." class="w-full bg-slate-50 border border-slate-200 p-2.5 pl-10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
                 <span class="absolute left-3 top-3 opacity-30">🔍</span>
             </div>
-            <select id="filterOutlet" onchange="fetchStock()" class="w-full md:w-48 bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm font-bold outline-none">
+            <select id="filterOutlet" onchange="fetchStock()" class="w-full md:w-48 bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm font-bold outline-none cursor-pointer">
                 <option value="ALL">SEMUA OUTLET</option>
                 <option value="GUDANG UTAMA">GUDANG UTAMA</option>
                 <option value="CABANA">CABANA SPA</option>
@@ -61,7 +53,7 @@
         <!-- Table -->
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse" id="masterTable">
+                <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-widest">
                             <th class="px-6 py-4 border-b">Outlet</th>
@@ -73,64 +65,54 @@
                             <th class="px-6 py-4 border-b text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="stockTableBody" class="text-sm divide-y divide-slate-100 text-slate-700">
-                        <!-- Data Javasript -->
-                    </tbody>
+                    <tbody id="stockTableBody" class="text-sm divide-y divide-slate-100 text-slate-700"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Modal Edit/Tambah -->
+    <!-- Modal Form -->
     <div id="modalProduk" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
             <div class="p-6 border-b flex justify-between items-center">
-                <h2 id="modalTitle" class="font-black text-slate-800 uppercase tracking-tight">Tambah Produk</h2>
+                <h2 id="modalTitle" class="font-black text-slate-800 uppercase tracking-tight">Data Produk</h2>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
             </div>
             <form id="formProduk" class="p-6 space-y-4">
                 <input type="hidden" id="editId">
                 <div>
                     <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Kode Produk</label>
-                    <input type="text" id="prodCode" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none focus:border-blue-500">
+                    <input type="text" id="prodCode" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none">
                 </div>
                 <div>
                     <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Nama Produk</label>
-                    <input type="text" id="prodName" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none focus:border-blue-500">
+                    <input type="text" id="prodName" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Volume (ML)</label>
-                        <input type="number" id="prodMl" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Stok Awal (Btl)</label>
-                        <input type="number" id="prodInitial" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none focus:border-blue-500">
+                        <input type="number" id="prodMl" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none">
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all mt-4">Simpan Perubahan</button>
+                <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all">Simpan Data</button>
             </form>
         </div>
     </div>
 
     <script>
-        const { createClient } = supabase;
-        const SUPABASE_URL = 'https://ziqimmcdfjhhjpcloxzs.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppcWltbWNkZmpoaGpwY2xveHpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTM2MzIsImV4cCI6MjA5MzYyOTYzMn0.PSWyImlqJZ7F4Gfw5UecmZSHXYQ4Aa-1er5sAEGgcq8';
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+        // Gunakan variabel global 'supabase' yang sudah diinisialisasi
         let masterData = [];
 
         async function fetchStock() {
             const tbody = document.getElementById('stockTableBody');
             const outletFilter = document.getElementById('filterOutlet').value;
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-slate-400 animate-pulse font-bold">Sinkronisasi Data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-slate-400 animate-pulse font-bold uppercase text-xs">Sinkronisasi Data...</td></tr>`;
 
             let query = supabase.from('view_stock_monitoring').select('*');
             if (outletFilter !== 'ALL') query = query.eq('outlet_name', outletFilter);
 
             const { data, error } = await query.order('product_name');
-            if (error) return alert(error.message);
+            if (error) { console.error(error); return; }
 
             masterData = data;
             renderTable(data);
@@ -139,20 +121,20 @@
         function renderTable(data) {
             const tbody = document.getElementById('stockTableBody');
             tbody.innerHTML = data.map(row => `
-                <tr class="hover:bg-slate-50">
+                <tr class="hover:bg-slate-50 transition-colors">
                     <td class="px-6 py-4 font-bold text-[10px] text-slate-400 uppercase tracking-tighter">${row.outlet_name}</td>
                     <td class="px-6 py-4 font-mono text-xs text-blue-600">${row.product_code}</td>
-                    <td class="px-6 py-4 font-black text-slate-800 uppercase">${row.product_name}</td>
-                    <td class="px-6 py-4 text-center font-bold">${row.stok_awal_btl}</td>
-                    <td class="px-6 py-4 text-center font-bold text-emerald-600">${row.total_in_btl}</td>
+                    <td class="px-6 py-4 font-black text-slate-800 uppercase tracking-tight">${row.product_name}</td>
+                    <td class="px-6 py-4 text-center font-bold text-slate-400">${row.stok_awal_btl || 0}</td>
+                    <td class="px-6 py-4 text-center font-bold text-emerald-600">+${row.total_in_btl || 0}</td>
                     <td class="px-6 py-4 text-center">
                         <span class="px-3 py-1 rounded-full font-black text-xs ${row.saldo_akhir_btl < 5 ? 'bg-rose-100 text-rose-600' : 'bg-slate-800 text-white'}">
-                            ${row.saldo_akhir_btl}
+                            ${row.saldo_akhir_btl || 0}
                         </span>
                     </td>
-                    <td class="px-6 py-4 text-center">
+                    <td class="px-6 py-4">
                         <div class="flex justify-center gap-2">
-                            <button onclick="editProduct('${row.product_code}')" class="p-2 hover:bg-blue-50 text-blue-600 rounded-lg">✎</button>
+                            <button onclick="editProduct('${row.product_code}', '${row.product_name}', ${row.ml_per_bottle})" class="p-2 hover:bg-blue-50 text-blue-600 rounded-lg">✎</button>
                             <button onclick="deleteProduct('${row.product_code}')" class="p-2 hover:bg-rose-50 text-rose-600 rounded-lg">✕</button>
                         </div>
                     </td>
@@ -160,63 +142,81 @@
             `).join('');
         }
 
-        // FUNGSI EXPORT
-        function exportToExcel() {
-            const worksheet = XLSX.utils.json_to_sheet(masterData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Stok_Produk");
-            XLSX.writeFile(workbook, `DeltaLunox_MasterStok_${new Date().toLocaleDateString()}.xlsx`);
-        }
+        // Logic Form Simpan
+        document.getElementById('formProduk').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.innerText = "MEMPROSES...";
+            btn.disabled = true;
 
-        // TEMPLATE IMPORT
-        function downloadTemplate() {
-            const template = [
-                { kode: "CONTOH-01", nama: "Nama Produk", ml: 750, stok_awal: 10, outlet: "GUDANG UTAMA" }
-            ];
-            const ws = XLSX.utils.json_to_sheet(template);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "Template_Import_Produk.xlsx");
-        }
-
-        // FUNGSI IMPORT
-        function importExcel(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                
-                alert(`Mencoba mengimport ${jsonData.length} data...`);
-                // Di sini Anda biasanya akan melakukan loop insert ke Supabase
-                // Contoh: for (let item of jsonData) { await supabase.from('products').upsert(...) }
-                fetchStock();
+            const payload = {
+                product_code: document.getElementById('prodCode').value,
+                name: document.getElementById('prodName').value,
+                ml_per_bottle: parseInt(document.getElementById('prodMl').value)
             };
-            reader.readAsArrayBuffer(file);
+
+            const { error } = await supabase.from('products').upsert(payload, { onConflict: 'product_code' });
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                closeModal();
+                fetchStock();
+            }
+            btn.disabled = false;
+            btn.innerText = "SIMPAN DATA";
+        };
+
+        function editProduct(code, name, ml) {
+            openModal();
+            document.getElementById('modalTitle').innerText = "Edit Produk";
+            document.getElementById('prodCode').value = code;
+            document.getElementById('prodCode').readOnly = true;
+            document.getElementById('prodName').value = name;
+            document.getElementById('prodMl').value = ml;
         }
 
-        // FUNGSI DELETE
         async function deleteProduct(code) {
-            if(confirm(`Hapus produk ${code} permanen?`)) {
+            if(confirm(`Hapus produk ${code}? Tindakan ini tidak dapat dibatalkan.`)) {
                 const { error } = await supabase.from('products').delete().eq('product_code', code);
                 if (error) alert(error.message);
                 else fetchStock();
             }
         }
 
-        // MODAL LOGIC
-        function openModal() {
+        function filterTable() {
+            const val = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = masterData.filter(row => 
+                row.product_name.toLowerCase().includes(val) || 
+                row.product_code.toLowerCase().includes(val)
+            );
+            renderTable(filtered);
+        }
+
+        function exportToExcel() {
+            const ws = XLSX.utils.json_to_sheet(masterData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "MasterStok");
+            XLSX.writeFile(wb, `Laporan_Stok_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function downloadTemplate() {
+            const template = [{ kode: "CODE01", nama: "Nama Item", ml: 750, stok_awal: 10, outlet: "GUDANG UTAMA" }];
+            const ws = XLSX.utils.json_to_sheet(template);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "Template_Delta_Lunox.xlsx");
+        }
+
+        function openModal() { 
             document.getElementById('modalProduk').classList.remove('hidden');
+            document.getElementById('prodCode').readOnly = false;
             document.getElementById('formProduk').reset();
-            document.getElementById('modalTitle').innerText = "Tambah Produk Baru";
         }
+        function closeModal() { document.getElementById('modalProduk').classList.add('hidden'); }
 
-        function closeModal() {
-            document.getElementById('modalProduk').classList.add('hidden');
-        }
-
-        window.onload = fetchStock;
+        // Auto-load
+        document.addEventListener('DOMContentLoaded', fetchStock);
     </script>
 </body>
 </html>
