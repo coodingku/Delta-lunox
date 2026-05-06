@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Harian | Delta Lunox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
+        .input-card { background: white; border-radius: 16px; transition: all 0.2s; }
+        .input-card:focus-within { border-color: #3b82f6; ring: 2px; ring-color: #dbeafe; }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="max-w-md mx-auto">
+        <header class="mb-6 text-center">
+            <h1 class="text-xl font-black text-slate-900 uppercase">Input Stok Harian</h1>
+            <p id="unitDisplay" class="text-xs font-bold text-blue-600 bg-blue-50 py-1 px-3 rounded-full inline-block mt-2">Loading Unit...</p>
+        </header>
+
+        <!-- Selector Tanggal -->
+        <div class="mb-6">
+            <input type="date" id="logDate" class="w-full p-4 rounded-2xl border-none shadow-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500" onchange="loadProducts()">
+        </div>
+
+        <!-- Daftar Produk -->
+        <div id="productList" class="space-y-4 mb-24">
+            <!-- Data produk akan muncul di sini -->
+        </div>
+
+        <!-- Tombol Simpan Melayang -->
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-100 to-transparent">
+            <button onclick="saveAll()" class="w-full max-w-md mx-auto block bg-slate-900 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl hover:bg-blue-600 transition-all">
+                Simpan Laporan Hari Ini
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // CONFIG: Sesuaikan untuk masing-masing unit (Cabana/Delta/Lunox)
+        const UNIT_NAME = "CABANA"; 
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        document.getElementById('unitDisplay').innerText = `UNIT: ${UNIT_NAME}`;
+        document.getElementById('logDate').valueAsDate = new Date();
+
+        async function loadProducts() {
+            const date = document.getElementById('logDate').value;
+            const list = document.getElementById('productList');
+            list.innerHTML = "<p class='text-center text-slate-400 font-bold py-10'>Memuat daftar miras...</p>";
+
+            // Ambil data produk dan log harian
+            const { data: products } = await supabase.from('products').select('*');
+            const { data: logs } = await supabase.from('daily_inventory').select('*').eq('unit_name', UNIT_NAME).eq('log_date', date);
+
+            list.innerHTML = products.map(p => {
+                const log = logs.find(l => l.product_id === p.id) || {};
+                return `
+                <div class="input-card p-5 border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm uppercase">${p.name}</h3>
+                            <p class="text-[10px] text-slate-400 font-bold">${p.product_code} | ${p.ml_per_bottle}ml</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-blue-50 p-2 rounded-xl">
+                            <label class="block text-[9px] font-black text-blue-400 uppercase mb-1 text-center">In (Btl)</label>
+                            <input type="number" data-id="${p.id}" data-field="stock_in" value="${log.stock_in || 0}" 
+                                class="w-full bg-transparent text-center font-black text-blue-700 outline-none">
+                        </div>
+                        <div class="bg-amber-50 p-2 rounded-xl">
+                            <label class="block text-[9px] font-black text-amber-400 uppercase mb-1 text-center">Mutasi</label>
+                            <input type="number" data-id="${p.id}" data-field="mutation" value="${log.mutation || 0}" 
+                                class="w-full bg-transparent text-center font-black text-amber-700 outline-none">
+                        </div>
+                        <div class="bg-emerald-50 p-2 rounded-xl border-2 border-emerald-200">
+                            <label class="block text-[9px] font-black text-emerald-500 uppercase mb-1 text-center">Out (Gls)</label>
+                            <input type="number" data-id="${p.id}" data-field="stock_out_glass" value="${log.stock_out_glass || 0}" 
+                                class="w-full bg-transparent text-center font-black text-emerald-700 outline-none">
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function saveAll() {
+            const date = document.getElementById('logDate').value;
+            const inputs = document.querySelectorAll('input[data-id]');
+            const updates = {};
+
+            inputs.forEach(input => {
+                const id = input.dataset.id;
+                const field = input.dataset.field;
+                if (!updates[id]) updates[id] = { product_id: id, unit_name: UNIT_NAME, log_date: date };
+                updates[id][field] = parseInt(input.value) || 0;
+            });
+
+            const { error } = await supabase.from('daily_inventory').upsert(Object.values(updates));
+
+            if (error) {
+                alert("Gagal menyimpan: " + error.message);
+            } else {
+                alert("Laporan harian berhasil dikirim!");
+                loadProducts();
+            }
+        }
+
+        window.onload = loadProducts;
+    </script>
+</body>
+</html>
