@@ -10,46 +10,52 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
-        .input-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; transition: transform 0.1s; }
+        .input-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
         .glass-header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; }
-        select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
     </style>
 </head>
-<body class="p-4 pb-24">
+<body class="p-4 pb-32">
 
     <div class="max-w-md mx-auto">
-        <!-- Header Info -->
-        <header class="glass-header sticky top-0 z-10 py-4 mb-6 -mx-4 px-4">
-            <div class="flex justify-between items-center mb-3">
-                <h1 class="text-lg font-black text-slate-900 uppercase tracking-tighter">Inventory Report</h1>
-                <input type="date" id="logDate" onchange="loadInventory()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg border-none outline-none">
+        <!-- Header -->
+        <header class="glass-header sticky top-0 z-20 py-4 mb-6 -mx-4 px-4">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h1 class="text-xl font-black text-slate-900 tracking-tighter">DELTA LUNOX</h1>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Inventory Management</p>
+                </div>
+                <input type="date" id="logDate" onchange="loadInventory()" class="text-xs font-bold bg-white border border-slate-200 p-2 rounded-xl outline-none shadow-sm">
             </div>
-            <!-- Selector Outlet untuk Staff -->
+
+            <!-- Unit Selector -->
             <div class="relative">
-                <select id="unitSelector" onchange="updateUnit()" class="w-full bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest p-3 rounded-xl border-none shadow-lg shadow-blue-200">
-                    <option value="GUDANG UTAMA">GUDANG UTAMA (STORE)</option>
-                    <option value="CABANA">CABANA SPA</option>
-                    <option value="DELTA SPA">DELTA SPA</option>
-                    <option value="KITCHEN">KITCHEN</option>
-                    <option value="KTV">KTV LUNOX</option>
+                <select id="unitSelector" onchange="updateUnit()" class="w-full bg-slate-900 text-white text-xs font-extrabold uppercase tracking-widest p-4 rounded-2xl appearance-none border-none shadow-xl">
+                    <option value="GUDANG UTAMA">📦 GUDANG UTAMA (STORE)</option>
+                    <option value="CABANA">💆 CABANA SPA</option>
+                    <option value="DELTA SPA">🚿 DELTA SPA</option>
+                    <option value="KITCHEN">🍳 KITCHEN</option>
+                    <option value="KTV">🎤 KTV LUNOX</option>
                 </select>
-                <div class="absolute right-4 top-3 pointer-events-none text-white opacity-50">▼</div>
+                <div class="absolute right-4 top-4 pointer-events-none text-white/50">▼</div>
             </div>
         </header>
 
         <!-- Daftar Produk -->
         <div id="productList" class="space-y-4">
-            <!-- Loading State -->
             <div class="flex justify-center py-20">
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
         </div>
 
-        <!-- Tombol Simpan -->
-        <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent">
-            <button onclick="saveReport()" id="btnSave" class="w-full max-w-md mx-auto block bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-blue-600 transition-all active:scale-95">
-                Simpan Laporan Sekarang
-            </button>
+        <!-- Floating Footer Simpan -->
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent z-30">
+            <div class="max-w-md mx-auto">
+                <button onclick="saveReport()" id="btnSave" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all">
+                    Simpan Laporan Unit
+                </button>
+            </div>
         </div>
     </div>
 
@@ -60,55 +66,67 @@
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let CURRENT_UNIT = document.getElementById('unitSelector').value;
+        document.getElementById('logDate').valueAsDate = new Date();
 
         function updateUnit() {
             CURRENT_UNIT = document.getElementById('unitSelector').value;
             loadInventory();
         }
 
-        document.getElementById('logDate').valueAsDate = new Date();
-
         async function loadInventory() {
             const date = document.getElementById('logDate').value;
             const container = document.getElementById('productList');
             container.innerHTML = `<div class="flex justify-center py-20"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`;
 
-            const [reqProducts, reqLogs] = await Promise.all([
+            // Mengambil data dari VIEW yang kita buat sebelumnya untuk stok real-time
+            const [reqProducts, reqLogs, reqStock] = await Promise.all([
                 supabaseClient.from('products').select('*').order('name'),
-                supabaseClient.from('daily_inventory').select('*').eq('unit_name', CURRENT_UNIT).eq('log_date', date)
+                supabaseClient.from('daily_inventory').select('*').eq('unit_name', CURRENT_UNIT).eq('log_date', date),
+                supabaseClient.from('view_stock_monitoring').select('*').eq('outlet_name', CURRENT_UNIT)
             ]);
 
             if (reqProducts.error) {
-                container.innerHTML = `<p class="text-center text-red-500 font-bold">Error: ${reqProducts.error.message}</p>`;
+                container.innerHTML = `<p class="text-center text-red-500">Error: ${reqProducts.error.message}</p>`;
                 return;
             }
 
             container.innerHTML = reqProducts.data.map(p => {
                 const log = reqLogs.data?.find(l => l.product_id === p.id) || {};
+                const stock = reqStock.data?.find(s => s.product_code === p.product_code) || { saldo_akhir_btl: 0, sisa_gelas_saat_ini: 0 };
+                
                 return `
-                <div class="input-card p-5">
+                <div class="input-card p-5 shadow-sm border border-slate-100">
                     <div class="flex justify-between items-start mb-4">
                         <div>
-                            <h3 class="text-sm font-extrabold text-slate-800 uppercase leading-tight">${p.name}</h3>
-                            <p class="text-[9px] font-bold text-slate-400 mt-1">${p.product_code} | ${p.ml_per_bottle}ml</p>
+                            <h3 class="text-[13px] font-black text-slate-800 uppercase tracking-tight">${p.name}</h3>
+                            <div class="flex gap-2 mt-1">
+                                <span class="bg-slate-100 text-[8px] font-bold px-2 py-0.5 rounded text-slate-500 uppercase">${p.product_code}</span>
+                                <span class="bg-blue-50 text-[8px] font-bold px-2 py-0.5 rounded text-blue-600 uppercase">Sisa: ${stock.saldo_akhir_btl} Btl / ${Math.floor(stock.sisa_gelas_saat_ini)} Gls</span>
+                            </div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-3 gap-3">
-                        <div class="text-center bg-blue-50/50 p-2 rounded-xl">
-                            <label class="text-[8px] font-black text-blue-400 uppercase block mb-1 tracking-tighter">In (Store)</label>
+                        <!-- IN (HANYA UNTUK GUDANG ATAU KIRIMAN SUPPLIER) -->
+                        <div class="flex flex-col">
+                            <label class="text-[8px] font-black text-slate-400 uppercase mb-1 px-1">In (Botol)</label>
                             <input type="number" data-id="${p.id}" data-field="stock_in" value="${log.stock_in || 0}"
-                                class="w-full bg-transparent text-center font-black text-blue-600 outline-none">
+                                class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-center font-black text-blue-600 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
-                        <div class="text-center bg-amber-50/50 p-2 rounded-xl">
-                            <label class="text-[8px] font-black text-amber-400 uppercase block mb-1 tracking-tighter">Mutasi</label>
+
+                        <!-- MUTASI (KIRIM ATAU TERIMA ANTAR OUTLET) -->
+                        <div class="flex flex-col">
+                            <label class="text-[8px] font-black text-slate-400 uppercase mb-1 px-1">Mutasi (+/-)</label>
                             <input type="number" data-id="${p.id}" data-field="mutation" value="${log.mutation || 0}"
-                                class="w-full bg-transparent text-center font-black text-amber-600 outline-none">
+                                class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-center font-black text-amber-600 focus:ring-2 focus:ring-amber-500 outline-none"
+                                placeholder="(-) Keluar">
                         </div>
-                        <div class="text-center bg-emerald-50 p-2 rounded-xl border border-emerald-100">
-                            <label class="text-[8px] font-black text-emerald-500 uppercase block mb-1 tracking-tighter">Out (Gls)</label>
+
+                        <!-- OUT (PENJUALAN PER GELAS) -->
+                        <div class="flex flex-col">
+                            <label class="text-[8px] font-black text-slate-400 uppercase mb-1 px-1">Out (Gelas)</label>
                             <input type="number" data-id="${p.id}" data-field="stock_out_glass" value="${log.stock_out_glass || 0}"
-                                class="w-full bg-transparent text-center font-black text-emerald-700 outline-none">
+                                class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-center font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                     </div>
                 </div>
@@ -121,7 +139,7 @@
             const btn = document.getElementById('btnSave');
             const inputs = document.querySelectorAll('input[data-id]');
             
-            btn.innerText = "SEDANG MENYIMPAN...";
+            btn.innerText = "SEDANG MENGIRIM...";
             btn.disabled = true;
 
             const updates = {};
@@ -142,10 +160,15 @@
                 alert("Gagal Simpan: " + error.message);
                 btn.innerText = "COBA LAGI";
             } else {
-                alert("Laporan Unit " + CURRENT_UNIT + " Berhasil Terkirim!");
-                btn.innerText = "BERHASIL DISIMPAN";
-                setTimeout(() => btn.innerText = "Simpan Laporan Sekarang", 2000);
-                loadInventory();
+                alert("✅ LAPORAN BERHASIL DISIMPAN\nStok di unit " + CURRENT_UNIT + " telah diperbarui.");
+                btn.innerText = "TERSIMPAN ✓";
+                btn.classList.replace('bg-blue-600', 'bg-emerald-500');
+                
+                setTimeout(() => {
+                    btn.innerText = "Simpan Laporan Unit";
+                    btn.classList.replace('bg-emerald-500', 'bg-blue-600');
+                    loadInventory();
+                }, 2000);
             }
             btn.disabled = false;
         }
