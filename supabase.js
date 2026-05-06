@@ -2,8 +2,8 @@
 const { createClient } = supabase;
 
 // 2. Konfigurasi Client Delta Lunox
-const SUPABASE_URL = 'https://enrlufzsigxcrhzhzwaa.supabase.co'; // Ganti dengan URL Project Anda
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVucmx1ZnpzaWd4Y3Joemh6d2FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMzU3NzYsImV4cCI6MjA5MTkxMTc3Nn0.AV0Pd39hp5qo_1Ltjas5n6d0C25md6HweJOFBBzfumM'; // Ganti dengan Anon Key Anda
+const SUPABASE_URL = 'https://ziqimmcdfjhhjpcloxzs.supabase.co'; // Ganti dengan URL Project Anda
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppcWltbWNkZmpoaGpwY2xveHpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTM2MzIsImV4cCI6MjA5MzYyOTYzMn0.PSWyImlqJZ7F4Gfw5UecmZSHXYQ4Aa-1er5sAEGgcq8'; // Ganti dengan Anon Key Anda
 
 // 3. Inisialisasi Koneksi
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
