@@ -99,124 +99,174 @@
         </div>
     </div>
 
-    <script>
-        // Gunakan variabel global 'supabase' yang sudah diinisialisasi
-        let masterData = [];
+   <!-- Ganti seluruh bagian <script> Anda dengan ini -->
+<script>
+    // 1. Inisialisasi Supabase Client dengan nama variabel unik
+    const SUPABASE_URL = 'https://ziqimmcdfjhhjpcloxzs.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppcWltbWNkZmpoaGpwY2xveHpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTM2MzIsImV4cCI6MjA5MzYyOTYzMn0.PSWyImlqJZ7F4Gfw5UecmZSHXYQ4Aa-1er5sAEGgcq8';
+    
+    // Pastikan menggunakan 'supabase.createClient' dari library yang di-load via CDN
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    let masterData = [];
 
-        async function fetchStock() {
-            const tbody = document.getElementById('stockTableBody');
-            const outletFilter = document.getElementById('filterOutlet').value;
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-slate-400 animate-pulse font-bold uppercase text-xs">Sinkronisasi Data...</td></tr>`;
+    async function fetchStock() {
+        const tbody = document.getElementById('stockTableBody');
+        const outletFilter = document.getElementById('filterOutlet').value;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-slate-400 animate-pulse font-bold uppercase text-xs">Sinkronisasi Data...</td></tr>`;
 
-            let query = supabase.from('view_stock_monitoring').select('*');
-            if (outletFilter !== 'ALL') query = query.eq('outlet_name', outletFilter);
+        // Gunakan supabaseClient di sini
+        let query = supabaseClient.from('view_stock_monitoring').select('*');
+        if (outletFilter !== 'ALL') query = query.eq('outlet_name', outletFilter);
 
-            const { data, error } = await query.order('product_name');
-            if (error) { console.error(error); return; }
-
-            masterData = data;
-            renderTable(data);
+        const { data, error } = await query.order('product_name');
+        if (error) { 
+            console.error("Fetch Error:", error.message); 
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-rose-500">Gagal memuat data.</td></tr>`;
+            return; 
         }
 
-        function renderTable(data) {
-            const tbody = document.getElementById('stockTableBody');
-            tbody.innerHTML = data.map(row => `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-6 py-4 font-bold text-[10px] text-slate-400 uppercase tracking-tighter">${row.outlet_name}</td>
-                    <td class="px-6 py-4 font-mono text-xs text-blue-600">${row.product_code}</td>
-                    <td class="px-6 py-4 font-black text-slate-800 uppercase tracking-tight">${row.product_name}</td>
-                    <td class="px-6 py-4 text-center font-bold text-slate-400">${row.stok_awal_btl || 0}</td>
-                    <td class="px-6 py-4 text-center font-bold text-emerald-600">+${row.total_in_btl || 0}</td>
-                    <td class="px-6 py-4 text-center">
-                        <span class="px-3 py-1 rounded-full font-black text-xs ${row.saldo_akhir_btl < 5 ? 'bg-rose-100 text-rose-600' : 'bg-slate-800 text-white'}">
-                            ${row.saldo_akhir_btl || 0}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="flex justify-center gap-2">
-                            <button onclick="editProduct('${row.product_code}', '${row.product_name}', ${row.ml_per_bottle})" class="p-2 hover:bg-blue-50 text-blue-600 rounded-lg">✎</button>
-                            <button onclick="deleteProduct('${row.product_code}')" class="p-2 hover:bg-rose-50 text-rose-600 rounded-lg">✕</button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+        masterData = data;
+        renderTable(data);
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('stockTableBody');
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-slate-400">Tidak ada data ditemukan.</td></tr>`;
+            return;
         }
+        tbody.innerHTML = data.map(row => `
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-4 font-bold text-[10px] text-slate-400 uppercase tracking-tighter">${row.outlet_name || '-'}</td>
+                <td class="px-6 py-4 font-mono text-xs text-blue-600">${row.product_code}</td>
+                <td class="px-6 py-4 font-black text-slate-800 uppercase tracking-tight">${row.product_name}</td>
+                <td class="px-6 py-4 text-center font-bold text-slate-400">${row.stok_awal_btl || 0}</td>
+                <td class="px-6 py-4 text-center font-bold text-emerald-600">+${row.total_in_btl || 0}</td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-3 py-1 rounded-full font-black text-xs ${row.saldo_akhir_btl < 5 ? 'bg-rose-100 text-rose-600' : 'bg-slate-800 text-white'}">
+                        ${row.saldo_akhir_btl || 0}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex justify-center gap-2">
+                        <button onclick="editProduct('${row.product_code}', '${row.product_name}', ${row.ml_per_bottle})" class="p-2 hover:bg-blue-50 text-blue-600 rounded-lg">✎</button>
+                        <button onclick="deleteProduct('${row.product_code}')" class="p-2 hover:bg-rose-50 text-rose-600 rounded-lg">✕</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
 
-        // Logic Form Simpan
-        document.getElementById('formProduk').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector('button');
-            btn.innerText = "MEMPROSES...";
-            btn.disabled = true;
+    // --- FIX: Tambahkan fungsi import yang sebelumnya hilang ---
+    async function importExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
 
-            const payload = {
-                product_code: document.getElementById('prodCode').value,
-                name: document.getElementById('prodName').value,
-                ml_per_bottle: parseInt(document.getElementById('prodMl').value)
-            };
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-            const { error } = await supabase.from('products').upsert(payload, { onConflict: 'product_code' });
+                // Mapping data Excel ke kolom tabel 'products'
+                const formattedData = jsonData.map(item => ({
+                    product_code: item.kode,
+                    name: item.nama,
+                    ml_per_bottle: parseInt(item.ml) || 0
+                }));
 
-            if (error) {
-                alert("Error: " + error.message);
-            } else {
-                closeModal();
+                const { error } = await supabaseClient.from('products').upsert(formattedData, { onConflict: 'product_code' });
+                
+                if (error) throw error;
+                alert("Import Berhasil!");
                 fetchStock();
+            } catch (err) {
+                console.error(err);
+                alert("Gagal Import: " + err.message);
             }
-            btn.disabled = false;
-            btn.innerText = "SIMPAN DATA";
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    document.getElementById('formProduk').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        btn.innerText = "MEMPROSES...";
+        btn.disabled = true;
+
+        const payload = {
+            product_code: document.getElementById('prodCode').value,
+            name: document.getElementById('prodName').value,
+            ml_per_bottle: parseInt(document.getElementById('prodMl').value)
         };
 
-        function editProduct(code, name, ml) {
-            openModal();
-            document.getElementById('modalTitle').innerText = "Edit Produk";
-            document.getElementById('prodCode').value = code;
-            document.getElementById('prodCode').readOnly = true;
-            document.getElementById('prodName').value = name;
-            document.getElementById('prodMl').value = ml;
-        }
+        const { error } = await supabaseClient.from('products').upsert(payload, { onConflict: 'product_code' });
 
-        async function deleteProduct(code) {
-            if(confirm(`Hapus produk ${code}? Tindakan ini tidak dapat dibatalkan.`)) {
-                const { error } = await supabase.from('products').delete().eq('product_code', code);
-                if (error) alert(error.message);
-                else fetchStock();
-            }
+        if (error) {
+            alert("Error: " + error.message);
+        } else {
+            closeModal();
+            fetchStock();
         }
+        btn.disabled = false;
+        btn.innerText = "SIMPAN DATA";
+    };
 
-        function filterTable() {
-            const val = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = masterData.filter(row => 
-                row.product_name.toLowerCase().includes(val) || 
-                row.product_code.toLowerCase().includes(val)
-            );
-            renderTable(filtered);
+    function editProduct(code, name, ml) {
+        openModal();
+        document.getElementById('modalTitle').innerText = "Edit Produk";
+        document.getElementById('prodCode').value = code;
+        document.getElementById('prodCode').readOnly = true;
+        document.getElementById('prodName').value = name;
+        document.getElementById('prodMl').value = ml;
+    }
+
+    async function deleteProduct(code) {
+        if(confirm(`Hapus produk ${code}? Tindakan ini tidak dapat dibatalkan.`)) {
+            const { error } = await supabaseClient.from('products').delete().eq('product_code', code);
+            if (error) alert(error.message);
+            else fetchStock();
         }
+    }
 
-        function exportToExcel() {
-            const ws = XLSX.utils.json_to_sheet(masterData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "MasterStok");
-            XLSX.writeFile(wb, `Laporan_Stok_${new Date().toISOString().split('T')[0]}.xlsx`);
-        }
+    function filterTable() {
+        const val = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = masterData.filter(row => 
+            (row.product_name || "").toLowerCase().includes(val) || 
+            (row.product_code || "").toLowerCase().includes(val)
+        );
+        renderTable(filtered);
+    }
 
-        function downloadTemplate() {
-            const template = [{ kode: "CODE01", nama: "Nama Item", ml: 750, stok_awal: 10, outlet: "GUDANG UTAMA" }];
-            const ws = XLSX.utils.json_to_sheet(template);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "Template_Delta_Lunox.xlsx");
-        }
+    function exportToExcel() {
+        const ws = XLSX.utils.json_to_sheet(masterData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "MasterStok");
+        XLSX.writeFile(wb, `Laporan_Stok_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
 
-        function openModal() { 
-            document.getElementById('modalProduk').classList.remove('hidden');
-            document.getElementById('prodCode').readOnly = false;
-            document.getElementById('formProduk').reset();
-        }
-        function closeModal() { document.getElementById('modalProduk').classList.add('hidden'); }
+    function downloadTemplate() {
+        const template = [{ kode: "CODE01", nama: "Nama Item", ml: 750, stok_awal: 10, outlet: "GUDANG UTAMA" }];
+        const ws = XLSX.utils.json_to_sheet(template);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Template");
+        XLSX.writeFile(wb, "Template_Delta_Lunox.xlsx");
+    }
 
-        // Auto-load
-        document.addEventListener('DOMContentLoaded', fetchStock);
-    </script>
+    function openModal() { 
+        document.getElementById('modalProduk').classList.remove('hidden');
+        document.getElementById('prodCode').readOnly = false;
+        document.getElementById('formProduk').reset();
+    }
+    
+    function closeModal() { document.getElementById('modalProduk').classList.add('hidden'); }
+
+    // Auto-load
+    document.addEventListener('DOMContentLoaded', fetchStock);
+</script>
 </body>
 </html>
