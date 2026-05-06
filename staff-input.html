@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Input Harian | Delta Lunox</title>
-    <link rel="icon" href="data:,"> <!-- Mencegah error favicon 404 -->
+    <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
         .input-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; transition: transform 0.1s; }
-        .input-card:active { transform: scale(0.98); }
         .glass-header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; }
+        select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
     </style>
 </head>
 <body class="p-4 pb-24">
@@ -20,17 +20,26 @@
     <div class="max-w-md mx-auto">
         <!-- Header Info -->
         <header class="glass-header sticky top-0 z-10 py-4 mb-6 -mx-4 px-4">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-lg font-black text-slate-900 uppercase tracking-tighter">Daily Report</h1>
-                    <p id="unitTag" class="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest">Loading...</p>
-                </div>
-                <input type="date" id="logDate" onchange="loadInventory()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none border-none">
+            <div class="flex justify-between items-center mb-3">
+                <h1 class="text-lg font-black text-slate-900 uppercase tracking-tighter">Inventory Report</h1>
+                <input type="date" id="logDate" onchange="loadInventory()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg border-none outline-none">
+            </div>
+            <!-- Selector Outlet untuk Staff -->
+            <div class="relative">
+                <select id="unitSelector" onchange="updateUnit()" class="w-full bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest p-3 rounded-xl border-none shadow-lg shadow-blue-200">
+                    <option value="GUDANG UTAMA">GUDANG UTAMA (STORE)</option>
+                    <option value="CABANA">CABANA SPA</option>
+                    <option value="DELTA SPA">DELTA SPA</option>
+                    <option value="KITCHEN">KITCHEN</option>
+                    <option value="KTV">KTV LUNOX</option>
+                </select>
+                <div class="absolute right-4 top-3 pointer-events-none text-white opacity-50">▼</div>
             </div>
         </header>
 
         <!-- Daftar Produk -->
         <div id="productList" class="space-y-4">
+            <!-- Loading State -->
             <div class="flex justify-center py-20">
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
@@ -38,33 +47,32 @@
 
         <!-- Tombol Simpan -->
         <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent">
-            <button onclick="saveReport()" id="btnSave" class="w-full max-w-md mx-auto block bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-blue-600 transition-all active:bg-blue-700">
-                Simpan Laporan Hari Ini
+            <button onclick="saveReport()" id="btnSave" class="w-full max-w-md mx-auto block bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-blue-600 transition-all active:scale-95">
+                Simpan Laporan Sekarang
             </button>
         </div>
     </div>
 
     <script>
-        // 1. Deklarasi Library & Konfigurasi
         const { createClient } = supabase;
         const SUPABASE_URL = 'https://ziqimmcdfjhhjpcloxzs.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppcWltbWNkZmpoaGpwY2xveHpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTM2MzIsImV4cCI6MjA5MzYyOTYzMn0.PSWyImlqJZ7F4Gfw5UecmZSHXYQ4Aa-1er5sAEGgcq8';
-        
-        // 2. Inisialisasi Client (Gunakan nama unik agar tidak bentrok)
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Ubah ini sesuai unit staff: 'CABANA SPA', 'DELTA SPA', atau 'KTV LUNOX'
-        const CURRENT_UNIT = "CABANA SPA"; 
-        
-        document.getElementById('unitTag').innerText = CURRENT_UNIT;
+        let CURRENT_UNIT = document.getElementById('unitSelector').value;
+
+        function updateUnit() {
+            CURRENT_UNIT = document.getElementById('unitSelector').value;
+            loadInventory();
+        }
+
         document.getElementById('logDate').valueAsDate = new Date();
 
-        // 3. Fungsi Load Data dari Supabase
         async function loadInventory() {
             const date = document.getElementById('logDate').value;
             const container = document.getElementById('productList');
-            
-            // Ambil Data Master & Log Transaksi secara paralel
+            container.innerHTML = `<div class="flex justify-center py-20"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`;
+
             const [reqProducts, reqLogs] = await Promise.all([
                 supabaseClient.from('products').select('*').order('name'),
                 supabaseClient.from('daily_inventory').select('*').eq('unit_name', CURRENT_UNIT).eq('log_date', date)
@@ -88,17 +96,17 @@
 
                     <div class="grid grid-cols-3 gap-3">
                         <div class="text-center bg-blue-50/50 p-2 rounded-xl">
-                            <label class="text-[8px] font-black text-blue-400 uppercase block mb-1">In (Btl)</label>
+                            <label class="text-[8px] font-black text-blue-400 uppercase block mb-1 tracking-tighter">In (Store)</label>
                             <input type="number" data-id="${p.id}" data-field="stock_in" value="${log.stock_in || 0}"
                                 class="w-full bg-transparent text-center font-black text-blue-600 outline-none">
                         </div>
                         <div class="text-center bg-amber-50/50 p-2 rounded-xl">
-                            <label class="text-[8px] font-black text-amber-400 uppercase block mb-1">Mutasi</label>
+                            <label class="text-[8px] font-black text-amber-400 uppercase block mb-1 tracking-tighter">Mutasi</label>
                             <input type="number" data-id="${p.id}" data-field="mutation" value="${log.mutation || 0}"
                                 class="w-full bg-transparent text-center font-black text-amber-600 outline-none">
                         </div>
                         <div class="text-center bg-emerald-50 p-2 rounded-xl border border-emerald-100">
-                            <label class="text-[8px] font-black text-emerald-500 uppercase block mb-1">Out (Gls)</label>
+                            <label class="text-[8px] font-black text-emerald-500 uppercase block mb-1 tracking-tighter">Out (Gls)</label>
                             <input type="number" data-id="${p.id}" data-field="stock_out_glass" value="${log.stock_out_glass || 0}"
                                 class="w-full bg-transparent text-center font-black text-emerald-700 outline-none">
                         </div>
@@ -108,7 +116,6 @@
             }).join('');
         }
 
-        // 4. Fungsi Simpan (Upsert)
         async function saveReport() {
             const date = document.getElementById('logDate').value;
             const btn = document.getElementById('btnSave');
@@ -137,9 +144,9 @@
             } else {
                 alert("Laporan Unit " + CURRENT_UNIT + " Berhasil Terkirim!");
                 btn.innerText = "BERHASIL DISIMPAN";
-                setTimeout(() => btn.innerText = "Simpan Laporan Hari Ini", 2000);
+                setTimeout(() => btn.innerText = "Simpan Laporan Sekarang", 2000);
+                loadInventory();
             }
-
             btn.disabled = false;
         }
 
