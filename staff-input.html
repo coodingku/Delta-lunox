@@ -29,6 +29,13 @@
                 <input type="date" id="logDate" onchange="loadInventory()" class="text-xs font-bold bg-white border border-slate-200 p-2 rounded-xl outline-none shadow-sm">
             </div>
 
+            <!-- Search Bar Baru -->
+            <div class="relative mb-4">
+                <input type="text" id="productSearch" onkeyup="filterProducts()" placeholder="Cari nama produk atau kode..." 
+                    class="w-full bg-slate-100 border-none p-3 pl-10 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <span class="absolute left-3 top-3 text-slate-400">🔍</span>
+            </div>
+
             <!-- Unit Selector -->
             <div class="relative">
                 <select id="unitSelector" onchange="updateUnit()" class="w-full bg-slate-900 text-white text-xs font-extrabold uppercase tracking-widest p-4 rounded-2xl appearance-none border-none shadow-xl">
@@ -65,6 +72,9 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppcWltbWNkZmpoaGpwY2xveHpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTM2MzIsImV4cCI6MjA5MzYyOTYzMn0.PSWyImlqJZ7F4Gfw5UecmZSHXYQ4Aa-1er5sAEGgcq8';
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        let ALL_PRODUCTS = []; // Simpan data asli untuk filter
+        let CURRENT_LOGS = [];
+        let CURRENT_STOCK = [];
         let CURRENT_UNIT = document.getElementById('unitSelector').value;
         document.getElementById('logDate').valueAsDate = new Date();
 
@@ -78,7 +88,6 @@
             const container = document.getElementById('productList');
             container.innerHTML = `<div class="flex justify-center py-20"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`;
 
-            // Mengambil data dari VIEW yang kita buat sebelumnya untuk stok real-time
             const [reqProducts, reqLogs, reqStock] = await Promise.all([
                 supabaseClient.from('products').select('*').order('name'),
                 supabaseClient.from('daily_inventory').select('*').eq('unit_name', CURRENT_UNIT).eq('log_date', date),
@@ -90,12 +99,27 @@
                 return;
             }
 
-            container.innerHTML = reqProducts.data.map(p => {
-                const log = reqLogs.data?.find(l => l.product_id === p.id) || {};
-                const stock = reqStock.data?.find(s => s.product_code === p.product_code) || { saldo_akhir_btl: 0, sisa_gelas_saat_ini: 0 };
+            // Simpan ke variabel global agar bisa difilter tanpa fetch ulang
+            ALL_PRODUCTS = reqProducts.data;
+            CURRENT_LOGS = reqLogs.data || [];
+            CURRENT_STOCK = reqStock.data || [];
+
+            renderUI(ALL_PRODUCTS);
+        }
+
+        function renderUI(products) {
+            const container = document.getElementById('productList');
+            if (products.length === 0) {
+                container.innerHTML = `<p class="text-center py-10 text-slate-400 font-bold text-xs uppercase">Produk tidak ditemukan</p>`;
+                return;
+            }
+
+            container.innerHTML = products.map(p => {
+                const log = CURRENT_LOGS.find(l => l.product_id === p.id) || {};
+                const stock = CURRENT_STOCK.find(s => s.product_code === p.product_code) || { saldo_akhir_btl: 0, sisa_gelas_saat_ini: 0 };
                 
                 return `
-                <div class="input-card p-5 shadow-sm border border-slate-100">
+                <div class="input-card p-5 shadow-sm border border-slate-100 product-item">
                     <div class="flex justify-between items-start mb-4">
                         <div>
                             <h3 class="text-[13px] font-black text-slate-800 uppercase tracking-tight">${p.name}</h3>
@@ -107,22 +131,17 @@
                     </div>
 
                     <div class="grid grid-cols-3 gap-3">
-                        <!-- IN (HANYA UNTUK GUDANG ATAU KIRIMAN SUPPLIER) -->
                         <div class="flex flex-col">
                             <label class="text-[8px] font-black text-slate-400 uppercase mb-1 px-1">In (Botol)</label>
                             <input type="number" data-id="${p.id}" data-field="stock_in" value="${log.stock_in || 0}"
                                 class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-center font-black text-blue-600 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
-
-                        <!-- MUTASI (KIRIM ATAU TERIMA ANTAR OUTLET) -->
                         <div class="flex flex-col">
                             <label class="text-[8px] font-black text-slate-400 uppercase mb-1 px-1">Mutasi (+/-)</label>
                             <input type="number" data-id="${p.id}" data-field="mutation" value="${log.mutation || 0}"
                                 class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-center font-black text-amber-600 focus:ring-2 focus:ring-amber-500 outline-none"
                                 placeholder="(-) Keluar">
                         </div>
-
-                        <!-- OUT (PENJUALAN PER GELAS) -->
                         <div class="flex flex-col">
                             <label class="text-[8px] font-black text-slate-400 uppercase mb-1 px-1">Out (Gelas)</label>
                             <input type="number" data-id="${p.id}" data-field="stock_out_glass" value="${log.stock_out_glass || 0}"
@@ -132,6 +151,16 @@
                 </div>
                 `;
             }).join('');
+        }
+
+        // Fungsi Filter Pencarian
+        function filterProducts() {
+            const searchTerm = document.getElementById('productSearch').value.toLowerCase();
+            const filtered = ALL_PRODUCTS.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) || 
+                p.product_code.toLowerCase().includes(searchTerm)
+            );
+            renderUI(filtered);
         }
 
         async function saveReport() {
