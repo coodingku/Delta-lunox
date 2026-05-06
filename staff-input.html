@@ -5,85 +5,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Input Harian | Delta Lunox</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memanggil SDK Supabase.js -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
-        .input-card { background: white; border-radius: 16px; transition: all 0.2s; }
-        .input-card:focus-within { border-color: #3b82f6; ring: 2px; ring-color: #dbeafe; }
+        .input-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
+        .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="p-4">
+<body class="p-4 pb-24">
 
     <div class="max-w-md mx-auto">
-        <header class="mb-6 text-center">
-            <h1 class="text-xl font-black text-slate-900 uppercase">Input Stok Harian</h1>
-            <p id="unitDisplay" class="text-xs font-bold text-blue-600 bg-blue-50 py-1 px-3 rounded-full inline-block mt-2">Loading Unit...</p>
+        <!-- Header Sticky -->
+        <header class="glass-header sticky top-0 z-10 py-4 mb-6 border-b border-slate-200">
+            <h1 class="text-xl font-black text-slate-900 uppercase text-center">Daily Stock Input</h1>
+            <div class="flex justify-between items-center mt-3">
+                <span id="unitTag" class="text-[10px] font-bold bg-blue-600 text-white px-3 py-1 rounded-full italic">UNIT: ...</span>
+                <input type="date" id="logDate" onchange="loadInventory()" class="text-xs font-bold border-none bg-transparent outline-none">
+            </div>
         </header>
 
-        <!-- Selector Tanggal -->
-        <div class="mb-6">
-            <input type="date" id="logDate" class="w-full p-4 rounded-2xl border-none shadow-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500" onchange="loadProducts()">
+        <!-- Container Daftar Produk -->
+        <div id="productList" class="space-y-4">
+            <p class="text-center text-slate-400 py-20 animate-pulse">Menghubungkan ke Database...</p>
         </div>
 
-        <!-- Daftar Produk -->
-        <div id="productList" class="space-y-4 mb-24">
-            <!-- Data produk akan muncul di sini -->
-        </div>
-
-        <!-- Tombol Simpan Melayang -->
-        <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-100 to-transparent">
-            <button onclick="saveAll()" class="w-full max-w-md mx-auto block bg-slate-900 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl hover:bg-blue-600 transition-all">
-                Simpan Laporan Hari Ini
+        <!-- Tombol Simpan (Floating) -->
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent">
+            <button onclick="saveReport()" id="btnSave" class="w-full max-w-md mx-auto block bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95">
+                Simpan Laporan Sekarang
             </button>
         </div>
     </div>
 
     <script>
-        // CONFIG: Sesuaikan untuk masing-masing unit (Cabana/Delta/Lunox)
-        const UNIT_NAME = "CABANA"; 
+        // --- CONFIGURASI SUPABASE ---
+        // Ganti dengan kredensial project Supabase Anda
         const SUPABASE_URL = 'YOUR_SUPABASE_URL';
         const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        document.getElementById('unitDisplay').innerText = `UNIT: ${UNIT_NAME}`;
+        // Identitas Unit (Misal: CABANA, DELTA, atau LUNOX)
+        const CURRENT_UNIT = "CABANA"; 
+        
+        document.getElementById('unitTag').innerText = `UNIT: ${CURRENT_UNIT}`;
         document.getElementById('logDate').valueAsDate = new Date();
 
-        async function loadProducts() {
+        // --- FUNGSI LOAD DATA ---
+        async function loadInventory() {
             const date = document.getElementById('logDate').value;
-            const list = document.getElementById('productList');
-            list.innerHTML = "<p class='text-center text-slate-400 font-bold py-10'>Memuat daftar miras...</p>";
+            const container = document.getElementById('productList');
+            
+            // 1. Ambil Data Master Produk
+            const { data: products, error: errP } = await supabase.from('products').select('*').order('name');
+            
+            // 2. Ambil Log Hari Ini (Jika sudah pernah diisi sebelumnya)
+            const { data: logs, error: errL } = await supabase.from('daily_inventory')
+                .select('*')
+                .eq('unit_name', CURRENT_UNIT)
+                .eq('log_date', date);
 
-            // Ambil data produk dan log harian
-            const { data: products } = await supabase.from('products').select('*');
-            const { data: logs } = await supabase.from('daily_inventory').select('*').eq('unit_name', UNIT_NAME).eq('log_date', date);
+            if (errP) return alert("Gagal koneksi database!");
 
-            list.innerHTML = products.map(p => {
+            container.innerHTML = products.map(p => {
                 const log = logs.find(l => l.product_id === p.id) || {};
                 return `
-                <div class="input-card p-5 border border-slate-200 shadow-sm">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 class="font-extrabold text-slate-800 text-sm uppercase">${p.name}</h3>
-                            <p class="text-[10px] text-slate-400 font-bold">${p.product_code} | ${p.ml_per_bottle}ml</p>
-                        </div>
+                <div class="input-card p-5">
+                    <div class="mb-4">
+                        <h3 class="text-sm font-extrabold text-slate-800 uppercase">${p.name}</h3>
+                        <p class="text-[9px] font-bold text-slate-400">${p.product_code} | ${p.ml_per_bottle}ml</p>
                     </div>
-                    
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="bg-blue-50 p-2 rounded-xl">
-                            <label class="block text-[9px] font-black text-blue-400 uppercase mb-1 text-center">In (Btl)</label>
-                            <input type="number" data-id="${p.id}" data-field="stock_in" value="${log.stock_in || 0}" 
-                                class="w-full bg-transparent text-center font-black text-blue-700 outline-none">
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="text-center">
+                            <label class="text-[8px] font-black text-slate-400 uppercase block mb-1">In (Btl)</label>
+                            <input type="number" data-id="${p.id}" data-field="stock_in" value="${log.stock_in || 0}"
+                                class="w-full bg-slate-50 p-3 rounded-xl text-center font-black text-blue-600 border border-slate-100 outline-none focus:border-blue-400">
                         </div>
-                        <div class="bg-amber-50 p-2 rounded-xl">
-                            <label class="block text-[9px] font-black text-amber-400 uppercase mb-1 text-center">Mutasi</label>
-                            <input type="number" data-id="${p.id}" data-field="mutation" value="${log.mutation || 0}" 
-                                class="w-full bg-transparent text-center font-black text-amber-700 outline-none">
+                        <div class="text-center">
+                            <label class="text-[8px] font-black text-slate-400 uppercase block mb-1">Mutasi</label>
+                            <input type="number" data-id="${p.id}" data-field="mutation" value="${log.mutation || 0}"
+                                class="w-full bg-slate-50 p-3 rounded-xl text-center font-black text-amber-600 border border-slate-100 outline-none focus:border-amber-400">
                         </div>
-                        <div class="bg-emerald-50 p-2 rounded-xl border-2 border-emerald-200">
-                            <label class="block text-[9px] font-black text-emerald-500 uppercase mb-1 text-center">Out (Gls)</label>
-                            <input type="number" data-id="${p.id}" data-field="stock_out_glass" value="${log.stock_out_glass || 0}" 
-                                class="w-full bg-transparent text-center font-black text-emerald-700 outline-none">
+                        <div class="text-center">
+                            <label class="text-[8px] font-black text-slate-400 uppercase block mb-1">Out (Gls)</label>
+                            <input type="number" data-id="${p.id}" data-field="stock_out_glass" value="${log.stock_out_glass || 0}"
+                                class="w-full bg-slate-50 p-3 rounded-xl text-center font-black text-emerald-600 border-2 border-emerald-100 outline-none focus:border-emerald-400">
                         </div>
                     </div>
                 </div>
@@ -91,29 +99,49 @@
             }).join('');
         }
 
-        async function saveAll() {
+        // --- FUNGSI SIMPAN DATA ---
+        async function saveReport() {
             const date = document.getElementById('logDate').value;
+            const btn = document.getElementById('btnSave');
             const inputs = document.querySelectorAll('input[data-id]');
-            const updates = {};
+            
+            btn.innerText = "SEDANG MENYIMPAN...";
+            btn.disabled = true;
 
+            // Mapping data dari input ke format database
+            const updates = {};
             inputs.forEach(input => {
                 const id = input.dataset.id;
                 const field = input.dataset.field;
-                if (!updates[id]) updates[id] = { product_id: id, unit_name: UNIT_NAME, log_date: date };
+                if (!updates[id]) {
+                    updates[id] = { 
+                        product_id: id, 
+                        unit_name: CURRENT_UNIT, 
+                        log_date: date 
+                    };
+                }
                 updates[id][field] = parseInt(input.value) || 0;
             });
 
-            const { error } = await supabase.from('daily_inventory').upsert(Object.values(updates));
+            // Kirim ke Supabase dengan logika UPSERT (Insert atau Update jika sudah ada)
+            const payload = Object.values(updates);
+            const { error } = await supabase.from('daily_inventory').upsert(payload, {
+                onConflict: 'product_id,unit_name,log_date'
+            });
 
             if (error) {
-                alert("Gagal menyimpan: " + error.message);
+                alert("Gagal Simpan: " + error.message);
             } else {
-                alert("Laporan harian berhasil dikirim!");
-                loadProducts();
+                alert("Laporan Berhasil Terkirim!");
             }
+
+            btn.innerText = "SIMPAN LAPORAN SEKARANG";
+            btn.disabled = false;
+            loadInventory();
         }
 
-        window.onload = loadProducts;
+        // Inisialisasi saat halaman dibuka
+        window.onload = loadInventory;
     </script>
 </body>
 </html>
