@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Inventori | Delta Lunox Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .table-container { background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Log Mutasi Inventori</h1>
+                <p class="text-slate-500 text-sm">Riwayat masuk dan keluar produk per unit.</p>
+            </div>
+            <div class="flex gap-2">
+                <input type="date" id="filterDate" onchange="fetchLogs()" class="bg-white border border-slate-200 p-2.5 rounded-xl text-sm font-bold outline-none shadow-sm">
+                <button onclick="exportLogs()" class="bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all">📊 EXPORT LOG</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="relative">
+                <input type="text" id="searchLogs" onkeyup="filterLogs()" placeholder="Cari produk..." class="w-full bg-white border border-slate-200 p-3 pl-10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <span class="absolute left-3 top-3.5 opacity-30">🔍</span>
+            </div>
+            <select id="unitFilter" onchange="fetchLogs()" class="bg-white border border-slate-200 p-3 rounded-xl text-sm font-bold outline-none cursor-pointer">
+                <option value="ALL">SEMUA UNIT</option>
+                <option value="GUDANG UTAMA">📦 GUDANG UTAMA</option>
+                <option value="CABANA">💆 CABANA SPA</option>
+                <option value="DELTA SPA">🚿 DELTA SPA</option>
+                <option value="KTV">🎤 KTV LUNOX</option>
+                <option value="KITCHEN">🍳 KITCHEN</option>
+            </select>
+        </div>
+
+        <div class="table-container shadow-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-widest">
+                            <th class="px-6 py-4 border-b">Unit</th>
+                            <th class="px-6 py-4 border-b">Produk</th>
+                            <th class="px-6 py-4 border-b text-center text-blue-600">Stock In</th>
+                            <th class="px-6 py-4 border-b text-center text-amber-600">Mutasi</th>
+                            <th class="px-6 py-4 border-b text-center text-rose-600">Out (Gls)</th>
+                            <th class="px-6 py-4 border-b text-center">Petugas</th>
+                            <th class="px-6 py-4 border-b text-center">Waktu Update</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody" class="text-sm divide-y divide-slate-100 text-slate-700">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ziqimmcdfjhhjpcloxzs.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppcWltbWNkZmpoaGpwY2xveHpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTM2MzIsImV4cCI6MjA5MzYyOTYzMn0.PSWyImlqJZ7F4Gfw5UecmZSHXYQ4Aa-1er5sAEGgcq8';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let LOG_DATA = [];
+        document.getElementById('filterDate').valueAsDate = new Date();
+
+        async function fetchLogs() {
+            const tbody = document.getElementById('logTableBody');
+            const date = document.getElementById('filterDate').value;
+            const unit = document.getElementById('unitFilter').value;
+
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-slate-400 animate-pulse">Memuat riwayat mutasi...</td></tr>`;
+
+            let query = supabaseClient
+                .from('daily_inventory')
+                .select(`
+                    *,
+                    products ( name, product_code )
+                `)
+                .eq('log_date', date);
+
+            if (unit !== 'ALL') query = query.eq('unit_name', unit);
+
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-rose-500">Error: ${error.message}</td></tr>`;
+                return;
+            }
+
+            LOG_DATA = data;
+            renderLogs(data);
+        }
+
+        function renderLogs(data) {
+            const tbody = document.getElementById('logTableBody');
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-slate-400 font-bold uppercase text-xs tracking-widest">Tidak ada aktivitas pada tanggal ini</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(log => `
+                <tr class="hover:bg-slate-50 transition-all">
+                    <td class="px-6 py-4">
+                        <span class="bg-slate-100 text-slate-600 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-tighter">${log.unit_name}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-800 uppercase text-xs">${log.products?.name || 'Produk Dihapus'}</div>
+                        <div class="text-[10px] text-slate-400 font-mono">${log.products?.product_code || '-'}</div>
+                    </td>
+                    <td class="px-6 py-4 text-center font-black text-blue-600">${log.stock_in > 0 ? '+' + log.stock_in : '-'}</td>
+                    <td class="px-6 py-4 text-center font-black ${log.mutation < 0 ? 'text-rose-500' : 'text-amber-600'}">
+                        ${log.mutation !== 0 ? (log.mutation > 0 ? '+' + log.mutation : log.mutation) : '-'}
+                    </td>
+                    <td class="px-6 py-4 text-center font-black text-slate-400">${log.stock_out_glass > 0 ? log.stock_out_glass + ' Gls' : '-'}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="text-[10px] font-bold text-slate-500 italic">${log.updated_by || 'System'}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center text-[10px] text-slate-400">
+                        ${new Date(log.created_at).toLocaleTimeString('id-ID')}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterLogs() {
+            const s = document.getElementById('searchLogs').value.toLowerCase();
+            const filtered = LOG_DATA.filter(l => 
+                l.products?.name.toLowerCase().includes(s) || 
+                l.products?.product_code.toLowerCase().includes(s)
+            );
+            renderLogs(filtered);
+        }
+
+        function exportLogs() {
+            if (LOG_DATA.length === 0) return alert("Tidak ada data untuk di-export");
+            
+            const exportData = LOG_DATA.map(l => ({
+                Tanggal: l.log_date,
+                Unit: l.unit_name,
+                Kode: l.products?.product_code,
+                Produk: l.products?.name,
+                "Stock In (Btl)": l.stock_in,
+                "Mutasi (Btl)": l.mutation,
+                "Out (Gelas)": l.stock_out_glass,
+                "Jam Update": new Date(l.created_at).toLocaleTimeString('id-ID')
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Log_Inventori");
+            XLSX.writeFile(wb, `Log_Stok_${document.getElementById('filterDate').value}.xlsx`);
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchLogs);
+    </script>
+</body>
+</html>
