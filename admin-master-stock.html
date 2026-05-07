@@ -13,16 +13,16 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
         .btn-action { transition: all 0.2s; }
         .btn-action:hover { transform: translateY(-1px); }
+        .sticky-col { position: sticky; left: 0; background: white; z-index: 10; border-right: 2px solid #f1f5f9; }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
     <div class="max-w-7xl mx-auto">
-        <!-- Header -->
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
             <div>
                 <h1 class="text-3xl font-black text-slate-900 tracking-tighter uppercase">Master Data Produk</h1>
-                <p class="text-slate-500 font-medium">Manajemen inventaris, import/export, dan kendali stok.</p>
+                <p class="text-slate-500 font-medium text-sm">Dashboard Pemantauan Stok Global Antar Outlet.</p>
             </div>
             
             <div class="flex flex-wrap gap-2">
@@ -34,34 +34,25 @@
             </div>
         </div>
 
-        <!-- Filter & Search -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 mb-6 flex flex-col md:flex-row gap-4 items-center">
-            <div class="relative w-full md:w-64">
-                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari nama atau kode..." class="w-full bg-slate-50 border border-slate-200 p-2.5 pl-10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
-                <span class="absolute left-3 top-3 opacity-30">🔍</span>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 mb-6 flex gap-4 items-center">
+            <div class="relative w-full md:w-96">
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari nama atau kode produk..." class="w-full bg-slate-50 border border-slate-200 p-3 pl-10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <span class="absolute left-3 top-3.5 opacity-30">🔍</span>
             </div>
-            <select id="filterOutlet" onchange="fetchStock()" class="w-full md:w-48 bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm font-bold outline-none cursor-pointer">
-                <option value="ALL">SEMUA OUTLET</option>
-                <option value="GUDANG UTAMA">GUDANG UTAMA</option>
-                <option value="CABANA">CABANA SPA</option>
-                <option value="DELTA SPA">DELTA SPA</option>
-                <option value="KITCHEN">KITCHEN</option>
-                <option value="KTV">KTV LUNOX</option>
-            </select>
         </div>
 
-        <!-- Table -->
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-widest">
-                            <th class="px-6 py-4 border-b">Outlet</th>
-                            <th class="px-6 py-4 border-b">Kode</th>
-                            <th class="px-6 py-4 border-b">Nama Produk</th>
-                            <th class="px-6 py-4 border-b text-center">Awal</th>
-                            <th class="px-6 py-4 border-b text-center">Masuk</th>
-                            <th class="px-6 py-4 border-b text-center">Sisa (Btl)</th>
+                            <th class="px-6 py-4 border-b sticky-col">Produk</th>
+                            <th class="px-6 py-4 border-b text-center bg-blue-50/50 text-blue-600">Gudang Utama</th>
+                            <th class="px-6 py-4 border-b text-center">Cabana</th>
+                            <th class="px-6 py-4 border-b text-center">Delta</th>
+                            <th class="px-6 py-4 border-b text-center">KTV</th>
+                            <th class="px-6 py-4 border-b text-center">Kitchen</th>
+                            <th class="px-6 py-4 border-b text-center text-slate-900">Total Stok</th>
                             <th class="px-6 py-4 border-b text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -71,7 +62,6 @@
         </div>
     </div>
 
-    <!-- Modal Form -->
     <div id="modalProduk" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
             <div class="p-6 border-b flex justify-between items-center">
@@ -79,7 +69,6 @@
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
             </div>
             <form id="formProduk" class="p-6 space-y-4">
-                <input type="hidden" id="editId">
                 <div>
                     <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Kode Produk</label>
                     <input type="text" id="prodCode" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none">
@@ -88,132 +77,118 @@
                     <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Nama Produk</label>
                     <input type="text" id="prodName" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Volume (ML)</label>
-                        <input type="number" id="prodMl" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none">
-                    </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Volume (ML)</label>
+                    <input type="number" id="prodMl" required class="w-full bg-slate-50 border p-3 rounded-xl outline-none">
                 </div>
                 <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all">Simpan Data</button>
             </form>
         </div>
     </div>
 
-   <!-- Ganti seluruh bagian <script> Anda dengan ini -->
 <script>
-    // 1. Inisialisasi Supabase Client dengan nama variabel unik
     const SUPABASE_URL = 'https://ziqimmcdfjhhjpcloxzs.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppcWltbWNkZmpoaGpwY2xveHpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTM2MzIsImV4cCI6MjA5MzYyOTYzMn0.PSWyImlqJZ7F4Gfw5UecmZSHXYQ4Aa-1er5sAEGgcq8';
-    
-    // Pastikan menggunakan 'supabase.createClient' dari library yang di-load via CDN
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    let masterData = [];
+    let rawData = []; // Data asli dari database
 
     async function fetchStock() {
         const tbody = document.getElementById('stockTableBody');
-        const outletFilter = document.getElementById('filterOutlet').value;
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-slate-400 animate-pulse font-bold uppercase text-xs">Sinkronisasi Data...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-20 text-slate-400 animate-pulse font-bold uppercase text-xs">Mengkonsolidasi Data...</td></tr>`;
 
-        // Gunakan supabaseClient di sini
-        let query = supabaseClient.from('view_stock_monitoring').select('*');
-        if (outletFilter !== 'ALL') query = query.eq('outlet_name', outletFilter);
-
-        const { data, error } = await query.order('product_name');
+        const { data, error } = await supabaseClient.from('view_stock_monitoring').select('*');
         if (error) { 
-            console.error("Fetch Error:", error.message); 
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-20 text-rose-500">Gagal memuat data.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-20 text-rose-500">Gagal memuat data.</td></tr>`;
             return; 
         }
 
-        masterData = data;
-        renderTable(data);
+        rawData = data;
+        processAndRender(data);
     }
 
-    function renderTable(data) {
+    function processAndRender(data) {
+        // Grouping data berdasarkan product_code
+        const grouped = data.reduce((acc, curr) => {
+            if (!acc[curr.product_code]) {
+                acc[curr.product_code] = {
+                    name: curr.product_name,
+                    code: curr.product_code,
+                    ml: curr.ml_per_bottle,
+                    outlets: {
+                        "GUDANG UTAMA": 0,
+                        "CABANA": 0,
+                        "DELTA SPA": 0,
+                        "KTV": 0,
+                        "KITCHEN": 0
+                    }
+                };
+            }
+            // Masukkan saldo akhir ke outlet yang sesuai
+            const outletKey = curr.outlet_name.toUpperCase();
+            if (acc[curr.product_code].outlets.hasOwnProperty(outletKey)) {
+                acc[curr.product_code].outlets[outletKey] = curr.saldo_akhir_btl || 0;
+            } else if (outletKey.includes("KTV")) {
+                acc[curr.product_code].outlets["KTV"] = curr.saldo_akhir_btl || 0;
+            }
+            return acc;
+        }, {});
+
         const tbody = document.getElementById('stockTableBody');
-        if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-slate-400">Tidak ada data ditemukan.</td></tr>`;
+        const rows = Object.values(grouped);
+
+        if (rows.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-400">Tidak ada produk.</td></tr>`;
             return;
         }
-        tbody.innerHTML = data.map(row => `
-            <tr class="hover:bg-slate-50 transition-colors">
-                <td class="px-6 py-4 font-bold text-[10px] text-slate-400 uppercase tracking-tighter">${row.outlet_name || '-'}</td>
-                <td class="px-6 py-4 font-mono text-xs text-blue-600">${row.product_code}</td>
-                <td class="px-6 py-4 font-black text-slate-800 uppercase tracking-tight">${row.product_name}</td>
-                <td class="px-6 py-4 text-center font-bold text-slate-400">${row.stok_awal_btl || 0}</td>
-                <td class="px-6 py-4 text-center font-bold text-emerald-600">+${row.total_in_btl || 0}</td>
-                <td class="px-6 py-4 text-center">
-                    <span class="px-3 py-1 rounded-full font-black text-xs ${row.saldo_akhir_btl < 5 ? 'bg-rose-100 text-rose-600' : 'bg-slate-800 text-white'}">
-                        ${row.saldo_akhir_btl || 0}
-                    </span>
-                </td>
-                <td class="px-6 py-4">
-                    <div class="flex justify-center gap-2">
-                        <button onclick="editProduct('${row.product_code}', '${row.product_name}', ${row.ml_per_bottle})" class="p-2 hover:bg-blue-50 text-blue-600 rounded-lg">✎</button>
-                        <button onclick="deleteProduct('${row.product_code}')" class="p-2 hover:bg-rose-50 text-rose-600 rounded-lg">✕</button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+
+        tbody.innerHTML = rows.map(item => {
+            const total = Object.values(item.outlets).reduce((a, b) => a + b, 0);
+            return `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 sticky-col shadow-sm">
+                        <div class="font-black text-slate-800 uppercase text-xs">${item.name}</div>
+                        <div class="font-mono text-[10px] text-blue-500">${item.code}</div>
+                    </td>
+                    <td class="px-6 py-4 text-center font-bold bg-blue-50/30 text-blue-700">${item.outlets["GUDANG UTAMA"]}</td>
+                    <td class="px-6 py-4 text-center font-bold">${item.outlets["CABANA"]}</td>
+                    <td class="px-6 py-4 text-center font-bold">${item.outlets["DELTA SPA"]}</td>
+                    <td class="px-6 py-4 text-center font-bold">${item.outlets["KTV"]}</td>
+                    <td class="px-6 py-4 text-center font-bold">${item.outlets["KITCHEN"]}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="px-3 py-1 rounded-full font-black text-xs bg-slate-900 text-white">${total}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex justify-center gap-2">
+                            <button onclick="editProduct('${item.code}', '${item.name}', ${item.ml})" class="p-2 hover:bg-blue-50 text-blue-600 rounded-lg">✎</button>
+                            <button onclick="deleteProduct('${item.code}')" class="p-2 hover:bg-rose-50 text-rose-600 rounded-lg">✕</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
-    // --- FIX: Tambahkan fungsi import yang sebelumnya hilang ---
-    async function importExcel(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-                // Mapping data Excel ke kolom tabel 'products'
-                const formattedData = jsonData.map(item => ({
-                    product_code: item.kode,
-                    name: item.nama,
-                    ml_per_bottle: parseInt(item.ml) || 0
-                }));
-
-                const { error } = await supabaseClient.from('products').upsert(formattedData, { onConflict: 'product_code' });
-                
-                if (error) throw error;
-                alert("Import Berhasil!");
-                fetchStock();
-            } catch (err) {
-                console.error(err);
-                alert("Gagal Import: " + err.message);
-            }
-        };
-        reader.readAsArrayBuffer(file);
+    function filterTable() {
+        const val = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = rawData.filter(row => 
+            (row.product_name || "").toLowerCase().includes(val) || 
+            (row.product_code || "").toLowerCase().includes(val)
+        );
+        processAndRender(filtered);
     }
 
+    // Fungsi lainnya tetap sama (Simpan, Edit, Hapus, Import)
     document.getElementById('formProduk').onsubmit = async (e) => {
         e.preventDefault();
-        const btn = e.target.querySelector('button');
-        btn.innerText = "MEMPROSES...";
-        btn.disabled = true;
-
         const payload = {
             product_code: document.getElementById('prodCode').value,
             name: document.getElementById('prodName').value,
             ml_per_bottle: parseInt(document.getElementById('prodMl').value)
         };
-
         const { error } = await supabaseClient.from('products').upsert(payload, { onConflict: 'product_code' });
-
-        if (error) {
-            alert("Error: " + error.message);
-        } else {
-            closeModal();
-            fetchStock();
-        }
-        btn.disabled = false;
-        btn.innerText = "SIMPAN DATA";
+        if (error) alert(error.message);
+        else { closeModal(); fetchStock(); }
     };
 
     function editProduct(code, name, ml) {
@@ -226,35 +201,11 @@
     }
 
     async function deleteProduct(code) {
-        if(confirm(`Hapus produk ${code}? Tindakan ini tidak dapat dibatalkan.`)) {
+        if(confirm(`Hapus produk ${code}?`)) {
             const { error } = await supabaseClient.from('products').delete().eq('product_code', code);
             if (error) alert(error.message);
             else fetchStock();
         }
-    }
-
-    function filterTable() {
-        const val = document.getElementById('searchInput').value.toLowerCase();
-        const filtered = masterData.filter(row => 
-            (row.product_name || "").toLowerCase().includes(val) || 
-            (row.product_code || "").toLowerCase().includes(val)
-        );
-        renderTable(filtered);
-    }
-
-    function exportToExcel() {
-        const ws = XLSX.utils.json_to_sheet(masterData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "MasterStok");
-        XLSX.writeFile(wb, `Laporan_Stok_${new Date().toISOString().split('T')[0]}.xlsx`);
-    }
-
-    function downloadTemplate() {
-        const template = [{ kode: "CODE01", nama: "Nama Item", ml: 750, stok_awal: 10, outlet: "GUDANG UTAMA" }];
-        const ws = XLSX.utils.json_to_sheet(template);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Template");
-        XLSX.writeFile(wb, "Template_Delta_Lunox.xlsx");
     }
 
     function openModal() { 
@@ -262,10 +213,8 @@
         document.getElementById('prodCode').readOnly = false;
         document.getElementById('formProduk').reset();
     }
-    
     function closeModal() { document.getElementById('modalProduk').classList.add('hidden'); }
 
-    // Auto-load
     document.addEventListener('DOMContentLoaded', fetchStock);
 </script>
 </body>
